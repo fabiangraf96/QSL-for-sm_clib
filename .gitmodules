@@ -1,0 +1,3 @@
+[submodule "sm_clib"]
+	path = sm_clib
+	url = https://github.com/dustcloud/sm_clib.git
