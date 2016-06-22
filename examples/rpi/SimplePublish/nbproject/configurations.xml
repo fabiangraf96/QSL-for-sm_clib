@@ -4,17 +4,17 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
-      <itemPath>../../../../sm_clib/sm_clib/dn_clib_build.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_clib_version.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_common.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_endianness.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_hdlc.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_ipmg.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_ipmt.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_lock.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_serial_mg.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_serial_mt.h</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_uart.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_clib_build.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_clib_version.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_common.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_endianness.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_hdlc.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_ipmg.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_ipmt.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_lock.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_serial_mg.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_serial_mt.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_uart.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -24,12 +24,12 @@
                    displayName="Source Files"
                    projectFiles="true">
       <itemPath>dn_endianness.c</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_hdlc.c</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_ipmg.c</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_ipmt.c</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_hdlc.c</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_ipmg.c</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_ipmt.c</itemPath>
       <itemPath>dn_lock.c</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_serial_mg.c</itemPath>
-      <itemPath>../../../../sm_clib/sm_clib/dn_serial_mt.c</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_serial_mg.c</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_serial_mt.c</itemPath>
       <itemPath>dn_uart.c</itemPath>
       <itemPath>main.c</itemPath>
     </logicalFolder>
@@ -56,91 +56,67 @@
       <compileType>
         <cTool>
           <incDir>
-            <pElem>../../../../sm_clib/sm_clib</pElem>
-            <pElem>../../../../sm_qsl</pElem>
+            <pElem>../../../sm_clib/sm_clib</pElem>
+            <pElem>../../../sm_qsl</pElem>
           </incDir>
           <warningLevel>2</warningLevel>
         </cTool>
       </compileType>
-      <item path="../../../../sm_clib/sm_clib/dn_clib_build.h"
+      <item path="../../../sm_clib/sm_clib/dn_clib_build.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_clib_version.h"
+      <item path="../../../sm_clib/sm_clib/dn_clib_version.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_common.h"
+      <item path="../../../sm_clib/sm_clib/dn_common.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_endianness.h"
+      <item path="../../../sm_clib/sm_clib/dn_endianness.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_hdlc.c"
+      <item path="../../../sm_clib/sm_clib/dn_hdlc.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_hdlc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmg.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmt.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_lock.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_serial_mg.c"
             ex="false"
             tool="0"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_hdlc.h"
+      <item path="../../../sm_clib/sm_clib/dn_serial_mg.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_ipmg.c"
+      <item path="../../../sm_clib/sm_clib/dn_serial_mt.c"
             ex="false"
             tool="0"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_ipmg.h"
+      <item path="../../../sm_clib/sm_clib/dn_serial_mt.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_ipmt.c"
-            ex="false"
-            tool="0"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_ipmt.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_lock.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_serial_mg.c"
-            ex="false"
-            tool="0"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_serial_mg.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_serial_mt.c"
-            ex="false"
-            tool="0"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_serial_mt.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_uart.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
+      <item path="../../../sm_clib/sm_clib/dn_uart.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="dn_endianness.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -171,85 +147,61 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
-      <item path="../../../../sm_clib/sm_clib/dn_clib_build.h"
+      <item path="../../../sm_clib/sm_clib/dn_clib_build.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_clib_version.h"
+      <item path="../../../sm_clib/sm_clib/dn_clib_version.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_common.h"
+      <item path="../../../sm_clib/sm_clib/dn_common.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_endianness.h"
+      <item path="../../../sm_clib/sm_clib/dn_endianness.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_hdlc.c"
+      <item path="../../../sm_clib/sm_clib/dn_hdlc.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_hdlc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmg.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmt.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_lock.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_serial_mg.c"
             ex="false"
             tool="0"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_hdlc.h"
+      <item path="../../../sm_clib/sm_clib/dn_serial_mg.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_ipmg.c"
+      <item path="../../../sm_clib/sm_clib/dn_serial_mt.c"
             ex="false"
             tool="0"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_ipmg.h"
+      <item path="../../../sm_clib/sm_clib/dn_serial_mt.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="../../../../sm_clib/sm_clib/dn_ipmt.c"
-            ex="false"
-            tool="0"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_ipmt.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_lock.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_serial_mg.c"
-            ex="false"
-            tool="0"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_serial_mg.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_serial_mt.c"
-            ex="false"
-            tool="0"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_serial_mt.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../../../../sm_clib/sm_clib/dn_uart.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
+      <item path="../../../sm_clib/sm_clib/dn_uart.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="dn_endianness.c" ex="false" tool="0" flavor2="0">
       </item>

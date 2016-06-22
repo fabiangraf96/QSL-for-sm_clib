@@ -35,11 +35,11 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
-	${OBJECTDIR}/_ext/74e416bf/dn_hdlc.o \
-	${OBJECTDIR}/_ext/74e416bf/dn_ipmg.o \
-	${OBJECTDIR}/_ext/74e416bf/dn_ipmt.o \
-	${OBJECTDIR}/_ext/74e416bf/dn_serial_mg.o \
-	${OBJECTDIR}/_ext/74e416bf/dn_serial_mt.o \
+	${OBJECTDIR}/_ext/8e680150/dn_hdlc.o \
+	${OBJECTDIR}/_ext/8e680150/dn_ipmg.o \
+	${OBJECTDIR}/_ext/8e680150/dn_ipmt.o \
+	${OBJECTDIR}/_ext/8e680150/dn_serial_mg.o \
+	${OBJECTDIR}/_ext/8e680150/dn_serial_mt.o \
 	${OBJECTDIR}/dn_endianness.o \
 	${OBJECTDIR}/dn_lock.o \
 	${OBJECTDIR}/dn_uart.o \
@@ -70,30 +70,30 @@ ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/simplepublish: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
 	${LINK.c} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/simplepublish ${OBJECTFILES} ${LDLIBSOPTIONS}
 
-${OBJECTDIR}/_ext/74e416bf/dn_hdlc.o: ../../../../sm_clib/sm_clib/dn_hdlc.c 
-	${MKDIR} -p ${OBJECTDIR}/_ext/74e416bf
+${OBJECTDIR}/_ext/8e680150/dn_hdlc.o: ../../../sm_clib/sm_clib/dn_hdlc.c 
+	${MKDIR} -p ${OBJECTDIR}/_ext/8e680150
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/74e416bf/dn_hdlc.o ../../../../sm_clib/sm_clib/dn_hdlc.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/8e680150/dn_hdlc.o ../../../sm_clib/sm_clib/dn_hdlc.c
 
-${OBJECTDIR}/_ext/74e416bf/dn_ipmg.o: ../../../../sm_clib/sm_clib/dn_ipmg.c 
-	${MKDIR} -p ${OBJECTDIR}/_ext/74e416bf
+${OBJECTDIR}/_ext/8e680150/dn_ipmg.o: ../../../sm_clib/sm_clib/dn_ipmg.c 
+	${MKDIR} -p ${OBJECTDIR}/_ext/8e680150
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/74e416bf/dn_ipmg.o ../../../../sm_clib/sm_clib/dn_ipmg.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/8e680150/dn_ipmg.o ../../../sm_clib/sm_clib/dn_ipmg.c
 
-${OBJECTDIR}/_ext/74e416bf/dn_ipmt.o: ../../../../sm_clib/sm_clib/dn_ipmt.c 
-	${MKDIR} -p ${OBJECTDIR}/_ext/74e416bf
+${OBJECTDIR}/_ext/8e680150/dn_ipmt.o: ../../../sm_clib/sm_clib/dn_ipmt.c 
+	${MKDIR} -p ${OBJECTDIR}/_ext/8e680150
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/74e416bf/dn_ipmt.o ../../../../sm_clib/sm_clib/dn_ipmt.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/8e680150/dn_ipmt.o ../../../sm_clib/sm_clib/dn_ipmt.c
 
-${OBJECTDIR}/_ext/74e416bf/dn_serial_mg.o: ../../../../sm_clib/sm_clib/dn_serial_mg.c 
-	${MKDIR} -p ${OBJECTDIR}/_ext/74e416bf
+${OBJECTDIR}/_ext/8e680150/dn_serial_mg.o: ../../../sm_clib/sm_clib/dn_serial_mg.c 
+	${MKDIR} -p ${OBJECTDIR}/_ext/8e680150
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/74e416bf/dn_serial_mg.o ../../../../sm_clib/sm_clib/dn_serial_mg.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/8e680150/dn_serial_mg.o ../../../sm_clib/sm_clib/dn_serial_mg.c
 
-${OBJECTDIR}/_ext/74e416bf/dn_serial_mt.o: ../../../../sm_clib/sm_clib/dn_serial_mt.c 
-	${MKDIR} -p ${OBJECTDIR}/_ext/74e416bf
+${OBJECTDIR}/_ext/8e680150/dn_serial_mt.o: ../../../sm_clib/sm_clib/dn_serial_mt.c 
+	${MKDIR} -p ${OBJECTDIR}/_ext/8e680150
 	${RM} "$@.d"
-	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/74e416bf/dn_serial_mt.o ../../../../sm_clib/sm_clib/dn_serial_mt.c
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/8e680150/dn_serial_mt.o ../../../sm_clib/sm_clib/dn_serial_mt.c
 
 ${OBJECTDIR}/dn_endianness.o: dn_endianness.c 
 	${MKDIR} -p ${OBJECTDIR}
