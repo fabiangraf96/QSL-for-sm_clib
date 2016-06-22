@@ -98,28 +98,33 @@ static void* dn_uart_read_daemon(void* arg)
 	{
 		printf("dn_uart: UART not initialized (rx)!\n");
 		return;
-	}	
-	
-	FD_ZERO(&set);
-	FD_SET(dn_uart_vars.uart_fd, &set);
-	timeout.tv_sec = 1;
+	}
+	printf("dn_uart: Read daemon started\n");	
 	
 	while(TRUE)
 	{
+		// Add socket to set
+		FD_ZERO(&set);
+		FD_SET(dn_uart_vars.uart_fd, &set);
+		// Set select timeout to 0.5 seconds
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 500000;
 		rc = select(dn_uart_vars.uart_fd + 1, &set, NULL, NULL, &timeout);
 		if (rc < 0)
 		{
-			printf("Select UART error\n");
+			// Error
 		}
 		else if (rc == 0)
 		{
-			printf("UART read timeout\n");
+			// Timeout
 		}
 		else
 		{
-			rxBytes = read(dn_uart_vars.uart_fd, (void*)rxBuff, MAX_FRAME_LENGTH);
+			// There are Bytes ready to be read
+			rxBytes = read(dn_uart_vars.uart_fd, rxBuff, MAX_FRAME_LENGTH);
 			if (rxBytes > 0)
 			{
+				printf("Received %d bytes\n", rxBytes);
 				for (n = 0; n < rxBytes; n++)
 				{
 					dn_uart_vars.ipmt_uart_rxByte_cb(rxBuff[n]);
