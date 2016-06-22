@@ -61,6 +61,11 @@
           </incDir>
           <warningLevel>2</warningLevel>
         </cTool>
+        <linkerTool>
+          <linkerLibItems>
+            <linkerLibStdlibItem>PosixThreads</linkerLibStdlibItem>
+          </linkerLibItems>
+        </linkerTool>
       </compileType>
       <item path="../../../sm_clib/sm_clib/dn_clib_build.h"
             ex="false"
