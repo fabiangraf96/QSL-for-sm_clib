@@ -14,6 +14,8 @@
 #ifndef DN_FSM_H
 #define DN_FSM_H
 
+#include "dn_common.h"
+
 //=========================== defines =========================================
 
 #define MOTE_STATE_IDLE           0x01

@@ -28,7 +28,7 @@
  extern "C" {
 #endif
 
-
+void dn_watchdog_feed(void);
 
 #ifdef __cplusplus
 }

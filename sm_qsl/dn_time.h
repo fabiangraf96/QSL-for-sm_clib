@@ -28,7 +28,7 @@
  extern "C" {
 #endif
 
-
+uint32_t dn_time_ms(void);
 
 #ifdef __cplusplus
 }

@@ -10,6 +10,9 @@
 
 #include "dn_fsm.h"
 #include "dn_ipmt.h"
+#include "dn_time.h"
+#include "dn_watchdog.h"
+#include "dn_qsl_api.h"
 
 //=========================== variables =======================================
 
