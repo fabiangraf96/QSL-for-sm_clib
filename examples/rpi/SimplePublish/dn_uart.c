@@ -68,14 +68,26 @@ void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 
 void dn_uart_txByte(uint8_t byte)
 {
+	int32_t rc;
 	if (dn_uart_vars.uart_fd == -1)
 	{
 		printf("dn_uart: UART not initialized (tx)!\n");
 		return;
 	}
 	
-	write(dn_uart_vars.uart_fd, &byte, 1);
-	printf("dn_uart: Sent a byte\n");
+	rc = write(dn_uart_vars.uart_fd, &byte, 1);
+	if (rc < 0)
+	{
+		// Error
+	}
+	else if (rc == 0)
+	{
+		// Nothing was sent
+	}
+	else
+	{
+		//printf("dn_uart: Sent a byte\n");
+	}
 }
 
 void dn_uart_txFlush(void)
