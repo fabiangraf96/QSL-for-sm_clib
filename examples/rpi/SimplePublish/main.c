@@ -13,16 +13,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "dn_common.h"
-#include "dn_ipmt.h"
+
+#include "dn_fsm.h"
 
 /*
  * 
  */
 int main(int argc, char** argv)
 {	
-	printf("Hello, world!\n");
-	printf("MAX_FRAME_LENGTH: %d\n", MAX_FRAME_LENGTH);
-	return (EXIT_SUCCESS);
+	dn_fsm_run();
 }
 
