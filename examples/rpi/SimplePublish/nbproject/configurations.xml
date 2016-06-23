@@ -8,13 +8,17 @@
       <itemPath>../../../sm_clib/sm_clib/dn_clib_version.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_common.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_endianness.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_fsm.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_hdlc.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_ipmg.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_ipmt.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_lock.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_qsl_api.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_serial_mg.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_serial_mt.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_time.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_uart.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_watchdog.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -24,12 +28,14 @@
                    displayName="Source Files"
                    projectFiles="true">
       <itemPath>dn_endianness.c</itemPath>
+      <itemPath>../../../sm_qsl/dn_fsm.c</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_hdlc.c</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_ipmg.c</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_ipmt.c</itemPath>
       <itemPath>dn_lock.c</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_serial_mg.c</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_serial_mt.c</itemPath>
+      <itemPath>dn_time.c</itemPath>
       <itemPath>dn_uart.c</itemPath>
       <itemPath>dn_watchdog.c</itemPath>
       <itemPath>main.c</itemPath>
