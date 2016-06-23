@@ -23,6 +23,7 @@
 int main(int argc, char** argv)
 {	
 	uint32_t start_ms = dn_time_ms();
+	dn_fsm_init();
 	dn_fsm_run();
 	printf("Runtime: %u\n", dn_time_ms() - start_ms);
 	return (EXIT_SUCCESS);

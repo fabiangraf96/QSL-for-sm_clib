@@ -22,7 +22,10 @@ typedef struct
 	uint8_t				notifBuf[MAX_FRAME_LENGTH];
 	fsm_reply_callback	replyCb;
 	fsm_timer_callback	fsmCb;
+	uint32_t			fsmEventScheduled_ms;
+	uint16_t			fsmDelay_ms;
 	uint32_t			events;
+	uint8_t				state;
 } dn_fsm_vars_t;
 
 dn_fsm_vars_t dn_fsm_vars;
@@ -32,15 +35,14 @@ dn_fsm_vars_t dn_fsm_vars;
 
 void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
 void dn_ipmt_reply_cb(uint8_t cmdId);
-void fsm_scheduleEvent(uint32_t delay, fsm_timer_callback cb);
+void fsm_scheduleEvent(uint16_t delay, fsm_timer_callback cb);
 void fsm_cancelEvent(void);
 void fsm_setReplyCallback(fsm_reply_callback cb);
 
 //=========================== public ==========================================
 
-void dn_fsm_run(void)
+void dn_fsm_init(void)
 {
-	dn_err_t rc = DN_ERR_NONE;
 	// Reset local variables
 	memset(&dn_fsm_vars, 0, sizeof(dn_fsm_vars));
 	
@@ -52,6 +54,14 @@ void dn_fsm_run(void)
 			sizeof(dn_fsm_vars.notifBuf),
 			dn_ipmt_reply_cb
 			);
+	
+	dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+}
+
+void dn_fsm_run(void)
+{
+	dn_err_t rc = DN_ERR_NONE;
+	
 	
 	sleep(5);
 	
@@ -66,19 +76,22 @@ void dn_fsm_run(void)
 
 //=========================== private =========================================
 
-void fsm_scheduleEvent(uint32_t delay, fsm_timer_callback cb)
+void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
 {
-	
+	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms();
+	dn_fsm_vars.fsmDelay_ms = delay_ms;
+	dn_fsm_vars.fsmCb = cb;
 }
 
 void fsm_cancelEvent(void)
 {
-	
+	dn_fsm_vars.fsmDelay_ms = 0;
+	dn_fsm_vars.fsmCb = NULL;
 }
 
 void fsm_setReplyCallback(fsm_reply_callback cb)
 {
-	
+	dn_fsm_vars.replyCb = cb;
 }
 
 void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
