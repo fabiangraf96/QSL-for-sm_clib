@@ -31,6 +31,7 @@
       <itemPath>../../../sm_clib/sm_clib/dn_serial_mg.c</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_serial_mt.c</itemPath>
       <itemPath>dn_uart.c</itemPath>
+      <itemPath>dn_watchdog.c</itemPath>
       <itemPath>main.c</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
@@ -137,7 +138,11 @@
       </item>
       <item path="dn_lock.c" ex="false" tool="0" flavor2="0">
       </item>
+      <item path="dn_time.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="dn_uart.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_watchdog.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="main.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -232,7 +237,11 @@
       </item>
       <item path="dn_lock.c" ex="false" tool="0" flavor2="0">
       </item>
+      <item path="dn_time.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="dn_uart.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_watchdog.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="main.c" ex="false" tool="0" flavor2="0">
       </item>

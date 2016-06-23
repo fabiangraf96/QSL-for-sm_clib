@@ -43,7 +43,9 @@ OBJECTFILES= \
 	${OBJECTDIR}/_ext/514638b4/dn_fsm.o \
 	${OBJECTDIR}/dn_endianness.o \
 	${OBJECTDIR}/dn_lock.o \
+	${OBJECTDIR}/dn_time.o \
 	${OBJECTDIR}/dn_uart.o \
+	${OBJECTDIR}/dn_watchdog.o \
 	${OBJECTDIR}/main.o
 
 
@@ -111,10 +113,20 @@ ${OBJECTDIR}/dn_lock.o: dn_lock.c
 	${RM} "$@.d"
 	$(COMPILE.c) -g -Wall -I../../../sm_clib/sm_clib -I../../../sm_qsl -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/dn_lock.o dn_lock.c
 
+${OBJECTDIR}/dn_time.o: dn_time.c 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -I../../../sm_clib/sm_clib -I../../../sm_qsl -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/dn_time.o dn_time.c
+
 ${OBJECTDIR}/dn_uart.o: dn_uart.c 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.c) -g -Wall -I../../../sm_clib/sm_clib -I../../../sm_qsl -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/dn_uart.o dn_uart.c
+
+${OBJECTDIR}/dn_watchdog.o: dn_watchdog.c 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -I../../../sm_clib/sm_clib -I../../../sm_qsl -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/dn_watchdog.o dn_watchdog.c
 
 ${OBJECTDIR}/main.o: main.c 
 	${MKDIR} -p ${OBJECTDIR}
