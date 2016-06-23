@@ -61,7 +61,7 @@ void dn_fsm_run(void)
 			);
 	printf("Requested moteStatus, rc: %u\n", rc);
 	
-	sleep(10);
+	sleep(5);
 }
 
 //=========================== private =========================================
