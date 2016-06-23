@@ -40,6 +40,7 @@ OBJECTFILES= \
 	${OBJECTDIR}/_ext/8e680150/dn_ipmt.o \
 	${OBJECTDIR}/_ext/8e680150/dn_serial_mg.o \
 	${OBJECTDIR}/_ext/8e680150/dn_serial_mt.o \
+	${OBJECTDIR}/_ext/514638b4/dn_fsm.o \
 	${OBJECTDIR}/dn_endianness.o \
 	${OBJECTDIR}/dn_lock.o \
 	${OBJECTDIR}/dn_uart.o \
@@ -94,6 +95,11 @@ ${OBJECTDIR}/_ext/8e680150/dn_serial_mt.o: ../../../sm_clib/sm_clib/dn_serial_mt
 	${MKDIR} -p ${OBJECTDIR}/_ext/8e680150
 	${RM} "$@.d"
 	$(COMPILE.c) -g -Wall -I../../../sm_clib/sm_clib -I../../../sm_qsl -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/8e680150/dn_serial_mt.o ../../../sm_clib/sm_clib/dn_serial_mt.c
+
+${OBJECTDIR}/_ext/514638b4/dn_fsm.o: ../../../sm_qsl/dn_fsm.c 
+	${MKDIR} -p ${OBJECTDIR}/_ext/514638b4
+	${RM} "$@.d"
+	$(COMPILE.c) -g -Wall -I../../../sm_clib/sm_clib -I../../../sm_qsl -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/514638b4/dn_fsm.o ../../../sm_qsl/dn_fsm.c
 
 ${OBJECTDIR}/dn_endianness.o: dn_endianness.c 
 	${MKDIR} -p ${OBJECTDIR}

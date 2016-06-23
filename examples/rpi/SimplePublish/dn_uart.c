@@ -75,6 +75,7 @@ void dn_uart_txByte(uint8_t byte)
 	}
 	
 	write(dn_uart_vars.uart_fd, &byte, 1);
+	printf("dn_uart: Sent a byte\n");
 }
 
 void dn_uart_txFlush(void)
