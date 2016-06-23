@@ -127,6 +127,12 @@
       </item>
       <item path="../../../sm_qsl/dn_fsm.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../../../sm_qsl/dn_qsl_api.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_time.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_watchdog.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="dn_endianness.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="dn_lock.c" ex="false" tool="0" flavor2="0">
@@ -215,6 +221,12 @@
       <item path="../../../sm_qsl/dn_fsm.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="../../../sm_qsl/dn_fsm.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_qsl_api.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_time.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_watchdog.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="dn_endianness.c" ex="false" tool="0" flavor2="0">
       </item>

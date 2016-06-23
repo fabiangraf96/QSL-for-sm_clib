@@ -22,5 +22,6 @@
 int main(int argc, char** argv)
 {	
 	dn_fsm_run();
+	return (EXIT_SUCCESS);
 }
 

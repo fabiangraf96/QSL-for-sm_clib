@@ -110,7 +110,7 @@ static void* dn_uart_read_daemon(void* arg)
 	if (dn_uart_vars.uart_fd == -1)
 	{
 		printf("dn_uart: UART not initialized (rx)!\n");
-		return;
+		return NULL;
 	}
 	printf("dn_uart: Read daemon started\n");	
 	
