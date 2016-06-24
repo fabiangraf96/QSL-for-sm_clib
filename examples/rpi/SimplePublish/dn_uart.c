@@ -7,12 +7,12 @@
 #include <unistd.h>		//Used for UART
 #include <fcntl.h>		//Used for UART
 #include <termios.h>	//Used for UART
-#include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 
 #include "dn_uart.h"
 #include "dn_ipmt.h"
+#include "dn_debug.h"
 
 //=========================== variables =======================================
 
@@ -44,11 +44,11 @@ void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 	dn_uart_vars.uart_fd = open(portname, O_RDWR | O_NOCTTY);
 	if (dn_uart_vars.uart_fd == -1)
 	{
-		printf("dn_uart: Unable to open UART\n");
+		log_err("Unable to open UART %s", portname);
 	}
 	else
 	{
-		printf("dn_uart: UART opened\n");
+		debug("UART opened");
 	}
 
 	tcgetattr(dn_uart_vars.uart_fd, &options);
@@ -62,7 +62,7 @@ void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 	rc = pthread_create(&dn_uart_vars.read_daemon, NULL, dn_uart_read_daemon, NULL);
 	if (rc != 0)
 	{
-		printf("dn_uart: Failed to start read daemon!\n");
+		log_err("Failed to start read daemon");
 	}
 }
 
@@ -71,7 +71,7 @@ void dn_uart_txByte(uint8_t byte)
 	int32_t rc;
 	if (dn_uart_vars.uart_fd == -1)
 	{
-		printf("dn_uart: UART not initialized (tx)!\n");
+		log_err("UART not initialized (tx)");
 		return;
 	}
 	
@@ -86,7 +86,7 @@ void dn_uart_txByte(uint8_t byte)
 	}
 	else
 	{
-		//printf("dn_uart: Sent a byte\n");
+		//debug("dn_uart: Sent a byte");
 	}
 }
 
@@ -109,10 +109,10 @@ static void* dn_uart_read_daemon(void* arg)
 	
 	if (dn_uart_vars.uart_fd == -1)
 	{
-		printf("dn_uart: UART not initialized (rx)!\n");
+		log_err("UART not initialized (rx)");
 		return NULL;
 	}
-	printf("dn_uart: Read daemon started\n");	
+	debug("Read daemon started");	
 	
 	while(TRUE)
 	{
@@ -137,7 +137,7 @@ static void* dn_uart_read_daemon(void* arg)
 			rxBytes = read(dn_uart_vars.uart_fd, rxBuff, MAX_FRAME_LENGTH);
 			if (rxBytes > 0)
 			{
-				printf("Received %d bytes\n", rxBytes);
+				debug("Received %d bytes", rxBytes);
 				for (n = 0; n < rxBytes; n++)
 				{
 					dn_uart_vars.ipmt_uart_rxByte_cb(rxBuff[n]);

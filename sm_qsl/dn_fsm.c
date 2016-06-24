@@ -13,6 +13,7 @@
 #include "dn_time.h"
 #include "dn_watchdog.h"
 #include "dn_qsl_api.h"
+#include "dn_debug.h"
 
 //=========================== variables =======================================
 
@@ -60,7 +61,7 @@ bool dn_qsl_init(void)
 	memset(&dn_fsm_vars, 0, sizeof (dn_fsm_vars));
 
 	// Initialize the ipmt module
-	dn_ipmt_init
+	dn_ipmt_init // Should be augmented with return value to know if successful...
 			(
 			dn_ipmt_notif_cb,
 			dn_fsm_vars.notifBuf,
@@ -69,6 +70,7 @@ bool dn_qsl_init(void)
 			);
 
 	dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+	return TRUE;
 }
 
 bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
@@ -76,34 +78,17 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 	uint32_t cmdStart_ms = dn_time_ms();
 	switch (dn_fsm_vars.state)
 	{
+	case FSM_STATE_NOT_INITIALIZED:
+		log_warn("dn_qsl_connect run without being initialized");
+		return FALSE;
 	case FSM_STATE_DISCONNECTED:
+		// Check arguments vs default
 		fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
-		// Get mote status: IDLE
-		// Open socket
-		// Bind socket
-		// Goto: PRE_JOIN
-		break;
-	case FSM_STATE_PRE_JOIN:
-		// Set netID
-		// Set join key
-		// join
-		// Goto: JOINING
-		break;
-	case FSM_STATE_JOINING:
-		// Join timeout: Retry
-		// OPERATIONAL event
-		// Goto: CONNECTED
-		break;
-	case FSM_STATE_CONNECTED:
-		// Request service
-		// Get service changed
-		// Goto: READY
-		break;
 	case FSM_STATE_READY:
-		// Return TRUE
-		// New connect in this state; Goto: CONNECTED
+		// Check if args are different than current; act accordingly
 		break;
 	default:
+		log_err("Undefined state");
 		break;
 	}
 
@@ -111,7 +96,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 	{
 		if ((dn_time_ms() - cmdStart_ms) > CONNECT_TIMEOUT_S * 1000)
 		{
-			printf("Connect timeout\n");
+			debug("Connect timeout");
 			dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
 			dn_fsm_vars.replyCb = NULL;
 			fsm_cancelEvent();
@@ -145,14 +130,12 @@ void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
 	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms();
 	dn_fsm_vars.fsmDelay_ms = delay_ms;
 	dn_fsm_vars.fsmCb = cb;
-	printf("Event scheduled\n");
 }
 
 void fsm_cancelEvent(void)
 {
 	dn_fsm_vars.fsmDelay_ms = 0;
 	dn_fsm_vars.fsmCb = NULL;
-	printf("Event canceled\n");
 }
 
 void fsm_setReplyCallback(fsm_reply_callback cb)
@@ -169,7 +152,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	//dn_ipmt_txDone_nt* notif_txDone;
 	//dn_ipmt_advReceived_nt* notif_advReceived;
 
-	printf("Got notification: cmdId; %#x (%u), subCmdId; %#x (%u)\n",
+	debug("Got notification: cmdId; %#x (%u), subCmdId; %#x (%u)",
 			cmdId, cmdId, subCmdId, subCmdId);
 
 	switch (cmdId)
@@ -178,7 +161,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		break;
 	case CMDID_EVENTS:
 		notif_events = (dn_ipmt_events_nt*) dn_fsm_vars.notifBuf;
-		printf("State: %#x\n", notif_events->state);
+		debug("State: %#x\n", notif_events->state);
 		switch (notif_events->state)
 		{
 		case MOTE_STATE_IDLE:
@@ -209,11 +192,11 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 
 void dn_ipmt_reply_cb(uint8_t cmdId)
 {
-	printf("Got reply: cmdId; %#x (%u)\n", cmdId, cmdId);
+	debug("Got reply: cmdId; %#x (%u)", cmdId, cmdId);
 	if (dn_fsm_vars.replyCb == NULL)
 	{
 		// No reply callback registered
-		printf("dn_fsm: Reply callback empty\n");
+		debug("Reply callback empty");
 		return;
 	}
 	dn_fsm_vars.replyCb();
@@ -221,7 +204,7 @@ void dn_ipmt_reply_cb(uint8_t cmdId)
 
 void api_response_timeout(void)
 {
-	printf("Response timeout\n");
+	debug("Response timeout");
 	dn_ipmt_cancelTx();
 	dn_fsm_vars.replyCb = NULL;
 	fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
@@ -229,7 +212,7 @@ void api_response_timeout(void)
 
 void api_getMoteStatus(void)
 {
-	printf("Mote status\n");
+	debug("Mote status");
 	// arm callback
 	fsm_setReplyCallback(api_getMoteStatus_reply);
 
@@ -245,14 +228,14 @@ void api_getMoteStatus(void)
 void api_getMoteStatus_reply(void)
 {
 	dn_ipmt_getParameter_moteStatus_rpt* reply;
-	printf("Mote status reply\n");
+	debug("Mote status reply");
 
 	// cancel timeout
 	fsm_cancelEvent();
 
 	// parse reply
 	reply = (dn_ipmt_getParameter_moteStatus_rpt*) dn_fsm_vars.replyBuf;
-	printf("State: %#x\n", reply->state);
+	debug("State: %#x", reply->state);
 
 	// choose next step
 	switch (reply->state)
@@ -271,7 +254,7 @@ void api_getMoteStatus_reply(void)
 
 void api_openSocket(void)
 {
-	printf("Open socket\n");
+	debug("Open socket");
 	// arm callback
 	fsm_setReplyCallback(api_openSocket_reply);
 
@@ -288,7 +271,7 @@ void api_openSocket(void)
 void api_openSocket_reply(void)
 {
 	dn_ipmt_openSocket_rpt* reply;
-	printf("Open socket reply\n");
+	debug("Open socket reply");
 
 	// cancel timeout
 	fsm_cancelEvent();
@@ -305,7 +288,7 @@ void api_openSocket_reply(void)
 
 void api_bindSocket(void)
 {
-	printf("Bind socket\n");
+	debug("Bind socket");
 	// arm callback
 	fsm_setReplyCallback(api_bindSocket_reply);
 
@@ -322,7 +305,7 @@ void api_bindSocket(void)
 
 void api_bindSocket_reply(void)
 {
-	printf("Bind socket reply\n");
+	debug("Bind socket reply");
 	// cancel timeout
 	fsm_cancelEvent();
 
@@ -332,7 +315,7 @@ void api_bindSocket_reply(void)
 
 void api_join(void)
 {
-	printf("Join\n");
+	debug("Join");
 	// arm callback
 	fsm_setReplyCallback(api_join_reply);
 
@@ -347,7 +330,7 @@ void api_join(void)
 
 void api_join_reply(void)
 {
-	printf("Join reply\n");
+	debug("Join reply");
 	// cancel timeout
 	fsm_cancelEvent();
 
