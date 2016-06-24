@@ -25,11 +25,13 @@
 #define MOTE_STATE_OPERATIONAL    0x05
 
 #define FSM_STATE_NOT_INITIALIZED	0x00
-#define FSM_STATE_DISCONNECTED			0x01
+#define FSM_STATE_DISCONNECTED		0x01
 #define FSM_STATE_PRE_JOIN			0x02
 #define FSM_STATE_JOINING			0x03
 #define FSM_STATE_CONNECTED			0x04
 #define FSM_STATE_READY				0x05
+#define FSM_STATE_SENDING			0x06
+#define FSM_STATE_SEND_FAILED		0x07
 
 #define MOTE_EVENT_MASK_NONE			0x0000
 #define MOTE_EVENT_MASK_BOOT			0x0001
@@ -45,6 +47,7 @@
 #define CMD_PERIOD_MS				1000	// number of ms between two commands being sent
 #define SERIAL_RESPONSE_TIMEOUT_MS	500		// max number of ms to wait for response
 #define CONNECT_TIMEOUT_S			60
+#define SEND_TIMEOUT_S				5
 
 #define SRC_PORT	0xf0b8
 #define DST_PORT	0xf0b8

@@ -31,6 +31,9 @@ typedef struct
 	uint16_t fsmDelay_ms;
 	uint32_t events;
 	uint8_t state;
+	uint8_t payloadBuff[PAYLOAD_LIMIT];
+	uint8_t payloadSize;
+	uint8_t destIPv6[IPv6ADDR_LEN];
 } dn_fsm_vars_t;
 
 dn_fsm_vars_t dn_fsm_vars;
@@ -52,6 +55,8 @@ void api_bindSocket(void);
 void api_bindSocket_reply(void);
 void api_join(void);
 void api_join_reply(void);
+void api_sendTo(void);
+void api_sendTo_reply(void);
 
 //=========================== public ==========================================
 
@@ -98,6 +103,52 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		{
 			debug("Connect timeout");
 			dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+			dn_fsm_vars.replyCb = NULL;
+			fsm_cancelEvent();
+			return FALSE;
+		} else
+		{
+			dn_fsm_run();
+			usleep(FSM_RUN_INTERVAL_MS * 1000);
+		}
+	}
+	return TRUE;
+}
+
+bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
+{
+	uint32_t cmdStart_ms = dn_time_ms();
+	switch (dn_fsm_vars.state)
+	{
+	case FSM_STATE_READY:
+		if (payloadSize_B > PAYLOAD_LIMIT)
+		{
+			log_warn("Payload size (%u) exceeds limit (%u)", payloadSize_B, PAYLOAD_LIMIT);
+			return FALSE;
+		}
+		memcpy(dn_fsm_vars.payloadBuff, payload, payloadSize_B);
+		dn_fsm_vars.payloadSize = payloadSize_B;
+		if (destIP == NULL)
+		{
+			memcpy(dn_fsm_vars.destIPv6, ipv6Addr_manager, IPv6ADDR_LEN);
+		}
+		else
+		{
+			memcpy(dn_fsm_vars.destIPv6, destIP, IPv6ADDR_LEN);
+		}
+		dn_fsm_vars.state = FSM_STATE_SENDING;
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_sendTo);
+		break;
+	default:
+		return FALSE;
+	}
+	
+	while (dn_fsm_vars.state == FSM_STATE_SENDING)
+	{
+		if ((dn_time_ms() - cmdStart_ms) > SEND_TIMEOUT_S * 1000)
+		{
+			debug("Send timeout");
+			dn_fsm_vars.state = FSM_STATE_READY;
 			dn_fsm_vars.replyCb = NULL;
 			fsm_cancelEvent();
 			return FALSE;
@@ -161,7 +212,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		break;
 	case CMDID_EVENTS:
 		notif_events = (dn_ipmt_events_nt*) dn_fsm_vars.notifBuf;
-		debug("State: %#x\n", notif_events->state);
+		debug("State: %#x", notif_events->state);
 		switch (notif_events->state)
 		{
 		case MOTE_STATE_IDLE:
@@ -207,7 +258,16 @@ void api_response_timeout(void)
 	debug("Response timeout");
 	dn_ipmt_cancelTx();
 	dn_fsm_vars.replyCb = NULL;
-	fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
+	
+	switch (dn_fsm_vars.state)
+	{
+	case FSM_STATE_SENDING:
+		dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
+		break;
+	default:
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
+		break;
+	}
 }
 
 void api_getMoteStatus(void)
@@ -337,6 +397,39 @@ void api_join_reply(void)
 	// choose next step
 	// no next step at this point. FSM will advance when we received a "joined"
 	// notification
+}
+
+void api_sendTo(void)
+{
+	debug("Send");
+	// arm callback
+	fsm_setReplyCallback(api_sendTo_reply);
+	
+	// issue function
+	dn_ipmt_sendTo
+			(
+			dn_fsm_vars.socketId, // socketId
+			dn_fsm_vars.destIPv6, // destIP
+			DST_PORT, // destPort
+			0, // serviceType
+			0, // priority
+			0xffff, // packetId
+			dn_fsm_vars.payloadBuff, // payload
+			dn_fsm_vars.payloadSize, // payloadLen
+			(dn_ipmt_sendTo_rpt*) (dn_fsm_vars.replyBuf) // reply
+			);
+
+	// schedule timeout event
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+}
+
+void api_sendTo_reply(void)
+{
+	debug("Send reply");
+   // cancel timeout
+   fsm_cancelEvent();
+   
+   dn_fsm_vars.state = FSM_STATE_READY;
 }
 
 //=========================== helpers =========================================

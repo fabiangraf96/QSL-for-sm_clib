@@ -32,6 +32,7 @@ int main(int argc, char** argv)
 		{
 			//printf("Connected to network\n");
 			log_info("Connected to network");
+			
 		}
 		else
 		{

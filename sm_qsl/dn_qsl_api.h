@@ -20,6 +20,7 @@
 
 #define IPv6ADDR_LEN	16
 #define JOIN_KEY_LEN	16
+#define PAYLOAD_LIMIT	71
 
 #define DEFAULT_NET_ID		1229
 #define DEFAULT_JOIN_KEY	(uint8_t*)default_joinKey
