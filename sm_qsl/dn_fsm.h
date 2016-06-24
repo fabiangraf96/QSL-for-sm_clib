@@ -40,8 +40,13 @@
 #define MOTE_EVENT_MASK_SVC_CHANGE		0x0080
 #define MOTE_EVENT_MASK_JOIN_STARTED	0x0100
 
-#define CMD_PERIOD				1000	// number of ms between two commands being sent
-#define SERIAL_RESPONSE_TIMEOUT	500		// max number of ms to wait for response
+#define FSM_RUN_INTERVAL_MS			25
+#define CMD_PERIOD_MS				1000	// number of ms between two commands being sent
+#define SERIAL_RESPONSE_TIMEOUT_MS	500		// max number of ms to wait for response
+#define CONNECT_TIMEOUT_S			60
+
+#define SRC_PORT	0xf0b8
+#define DST_PORT	0xf0b8
 
 //=========================== typedef =========================================
 
@@ -58,7 +63,6 @@ extern "C"
 {
 #endif
 
-void dn_fsm_init(void);
 void dn_fsm_run(void);
 
 

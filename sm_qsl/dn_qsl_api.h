@@ -18,6 +18,17 @@
 
 //=========================== defines =========================================
 
+#define IPv6ADDR_LEN	16
+#define JOIN_KEY_LEN	16
+
+#define DEFAULT_NET_ID		1229
+#define DEFAULT_JOIN_KEY	(uint8_t*)default_joinKey
+
+static const uint8_t default_joinKey[JOIN_KEY_LEN] = {
+   0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
+   0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4B
+};
+
 //=========================== typedef =========================================
 
 //=========================== variables =======================================
