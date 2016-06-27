@@ -61,6 +61,8 @@ void api_setNetworkId(void);
 void api_setNetworkId_reply(void);
 void api_join(void);
 void api_join_reply(void);
+void api_requestService(void);
+void api_requestService_reply(void);
 void api_sendTo(void);
 void api_sendTo_reply(void);
 
@@ -257,6 +259,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			break;
 		}
 		dn_fsm_vars.events |= notif_events->events;
+		// TODO: Check service if srcChanged received in FSM_STATE_REQ_SERVICE
 
 		break;
 	case CMDID_RECEIVE:
@@ -457,7 +460,14 @@ void api_bindSocket_reply(void)
 	case RC_OK:
 		debug("Socket bound successfully");
 		// TODO: Request service and wait for event svcChange
-		dn_fsm_vars.state = FSM_STATE_READY;
+		if (dn_fsm_vars.service_ms > 0)
+		{
+			fsm_scheduleEvent(CMD_PERIOD_MS, api_requestService);			
+		}
+		else
+		{
+			dn_fsm_vars.state = FSM_STATE_READY;
+		}
 		break;
 	case RC_BUSY:
 		debug("Port already bound");
@@ -598,6 +608,43 @@ void api_join_reply(void)
 	}
 }
 
+void api_requestService(void)
+{
+	debug("Request service");
+	
+	fsm_setReplyCallback(api_requestService_reply);
+	
+	dn_ipmt_requestService
+			(
+			SERVICE_ADDRESS,
+			SERVICE_TYPE_BW,
+			dn_fsm_vars.service_ms,
+			(dn_ipmt_requestService_rpt*)dn_fsm_vars.replyBuf
+			);
+	
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+}
+void api_requestService_reply(void)
+{
+	dn_ipmt_requestService_rpt* reply;
+	debug("Request service reply");
+	
+	fsm_cancelEvent();
+	
+	reply = (dn_ipmt_requestService_rpt*)dn_fsm_vars.replyBuf;
+	switch (reply->RC)
+	{
+	case RC_OK:
+		debug("Service request accepted");
+		dn_fsm_vars.state = FSM_STATE_REQ_SERVICE;
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	}
+}
+
 void api_sendTo(void)
 {
 	dn_err_t err;
@@ -611,8 +658,8 @@ void api_sendTo(void)
 			dn_fsm_vars.socketId, // socketId
 			dn_fsm_vars.destIPv6, // destIP
 			DST_PORT, // destPort
-			0, // serviceType
-			1, // priority
+			SERVICE_TYPE_BW, // serviceType
+			PACKET_PRIORITY_MEDIUM, // priority
 			0xffff, // packetId
 			dn_fsm_vars.payloadBuff, // payload
 			dn_fsm_vars.payloadSize, // payloadLen
@@ -636,7 +683,6 @@ void api_sendTo_reply(void)
 	fsm_cancelEvent();
 
 	reply = (dn_ipmt_sendTo_rpt*) dn_fsm_vars.replyBuf;
-
 	switch (reply->RC)
 	{
 	case RC_OK:
