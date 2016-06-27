@@ -47,6 +47,8 @@ void fsm_scheduleEvent(uint16_t delay, fsm_timer_callback cb);
 void fsm_cancelEvent(void);
 void fsm_setReplyCallback(fsm_reply_callback cb);
 void api_response_timeout(void);
+void api_reset(void);
+void api_reset_reply(void);
 void api_getMoteStatus(void);
 void api_getMoteStatus_reply(void);
 void api_openSocket(void);
@@ -143,7 +145,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 	default:
 		return FALSE;
 	}
-	
+
 	while (dn_fsm_vars.state == FSM_STATE_SENDING)
 	{
 		if ((dn_time_ms() - cmdStart_ms) > SEND_TIMEOUT_S * 1000)
@@ -260,7 +262,7 @@ void api_response_timeout(void)
 	debug("Response timeout");
 	dn_ipmt_cancelTx();
 	dn_fsm_vars.replyCb = NULL;
-	
+
 	switch (dn_fsm_vars.state)
 	{
 	case FSM_STATE_SENDING:
@@ -268,6 +270,42 @@ void api_response_timeout(void)
 		break;
 	default:
 		fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
+		break;
+	}
+}
+
+void api_reset(void)
+{
+	debug("Reset");
+	
+	fsm_setReplyCallback(api_reset_reply);
+	
+	dn_ipmt_reset
+			(
+			(dn_ipmt_reset_rpt*)dn_fsm_vars.replyBuf
+			);
+	
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+}
+
+void api_reset_reply(void)
+{
+	dn_ipmt_reset_rpt* reply;
+	debug("Reset reply");
+	
+	fsm_cancelEvent();
+	
+	reply = (dn_ipmt_reset_rpt*)dn_fsm_vars.replyBuf;
+	switch (reply->RC)
+	{
+	case RC_OK:
+		debug("Mote soft-reset initiated");
+		dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+		fsm_scheduleEvent(BACKOFF_AFTER_RESET_MS, api_getMoteStatus);
+		break;
+	default:
+		log_err("Mote soft-reset failed with RC: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
 		break;
 	}
 }
@@ -350,7 +388,7 @@ void api_openSocket_reply(void)
 		break;
 	case RC_NO_RESOURCES:
 		debug("Couldn't create socket due to resource availability");
-		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -392,7 +430,7 @@ void api_bindSocket_reply(void)
 		break;
 	case RC_BUSY:
 		debug("Port already bound");
-		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
 		break;
 	case RC_NOT_FOUND:
 		debug("Invalid socket ID");
@@ -437,7 +475,7 @@ void api_sendTo(void)
 	debug("Send");
 	// arm callback
 	fsm_setReplyCallback(api_sendTo_reply);
-	
+
 	// issue function
 	err = dn_ipmt_sendTo
 			(
@@ -464,26 +502,26 @@ void api_sendTo_reply(void)
 {
 	dn_ipmt_sendTo_rpt* reply;
 	debug("Send reply");
-	
-   // cancel timeout
-   fsm_cancelEvent();
-   
-   reply = (dn_ipmt_sendTo_rpt*)dn_fsm_vars.replyBuf;
-   
-   switch (reply->RC)
-   {
-   case RC_OK:
-	   dn_fsm_vars.state = FSM_STATE_READY;
-	   break;
-   case RC_NO_RESOURCES:
-	   debug("Send failed: NO RESOURCES");
-	   dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
-	   break;
-   default:
-	   log_warn("Unexpected response code: %#x", reply->RC);
-	   dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
-	   break;
-   }   
+
+	// cancel timeout
+	fsm_cancelEvent();
+
+	reply = (dn_ipmt_sendTo_rpt*) dn_fsm_vars.replyBuf;
+
+	switch (reply->RC)
+	{
+	case RC_OK:
+		dn_fsm_vars.state = FSM_STATE_READY;
+		break;
+	case RC_NO_RESOURCES:
+		debug("Send failed: NO RESOURCES");
+		dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
+		break;
+	}
 }
 
 //=========================== helpers =========================================

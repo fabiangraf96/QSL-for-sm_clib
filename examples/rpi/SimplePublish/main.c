@@ -39,7 +39,6 @@ int main(int argc, char** argv)
 			if (success)
 			{
 				debug("Sent message: %#x", message);
-				sleep(5);
 			}
 			else
 			{
