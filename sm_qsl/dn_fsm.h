@@ -29,9 +29,10 @@
 #define FSM_STATE_PRE_JOIN			0x02
 #define FSM_STATE_JOINING			0x03
 #define FSM_STATE_CONNECTED			0x04
-#define FSM_STATE_READY				0x05
-#define FSM_STATE_SENDING			0x06
-#define FSM_STATE_SEND_FAILED		0x07
+#define FSM_STATE_CONNECT_FAILED	0x05
+#define FSM_STATE_READY				0x0f
+#define FSM_STATE_SENDING			0x10
+#define FSM_STATE_SEND_FAILED		0x11
 
 #define MOTE_EVENT_MASK_NONE			0x0000
 #define MOTE_EVENT_MASK_BOOT			0x0001
@@ -42,6 +43,24 @@
 #define MOTE_EVENT_MASK_OPERATIONAL		0x0020
 #define MOTE_EVENT_MASK_SVC_CHANGE		0x0080
 #define MOTE_EVENT_MASK_JOIN_STARTED	0x0100
+
+#define RC_OK					0x00
+#define RC_ERROR				0x01
+#define RC_BUSY					0x03
+#define RC_INVALID_LEN			0x04
+#define RC_INVALID_STATE		0x05
+#define RC_UNSUPPORTED			0x06
+#define RC_UNKNOWN_PARAM		0x07
+#define RC_UNKNOWN_CMD			0x08
+#define RC_WRITE_FAIL			0x09
+#define RC_READ_FAIL			0x0a
+#define RC_LOW_VOLTAGE			0x0b
+#define RC_NO_RESOURCES			0x0c
+#define RC_INCOMPLETE_JOIN_INFO	0x0d
+#define RC_NOT_FOUND			0x0e
+#define RC_INVALID_VALUE		0x0f
+#define RC_ACCESS_DENIED		0x10
+#define RC_ERASE_FAIL			0x12
 
 #define FSM_RUN_INTERVAL_MS			25
 #define CMD_PERIOD_MS				1000	// number of ms between two commands being sent

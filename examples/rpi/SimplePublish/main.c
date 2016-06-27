@@ -15,12 +15,15 @@
 
 #include "dn_qsl_api.h"
 #include "dn_debug.h"
+#include "dn_endianness.h"
 
 /*
  * 
  */
 int main(int argc, char** argv)
-{	
+{
+	uint16_t message = 0xabcd;
+	uint8_t payload[2];
 	bool success = FALSE;
 	debug("Initializing...");
 	success = dn_qsl_init();
@@ -30,19 +33,26 @@ int main(int argc, char** argv)
 		success = dn_qsl_connect(0, NULL, 0);
 		if (success)
 		{
-			//printf("Connected to network\n");
 			log_info("Connected to network");
-			
+			dn_write_uint16_t(payload, message);
+			success = dn_qsl_send(payload, sizeof(message), NULL);
+			if (success)
+			{
+				debug("Sent message: %#x", message);
+				sleep(5);
+			}
+			else
+			{
+				debug("Send failed");
+			}
 		}
 		else
 		{
-			//printf("Failed to connect\n");
 			log_info("Failed to connect");
 		}
 	}
 	else
 	{
-		//printf("Initialization failed\n");
 		log_warn("Initialization failed");
 	}
 

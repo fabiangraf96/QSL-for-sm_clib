@@ -21,7 +21,7 @@ typedef struct
 {
 	uint8_t replyBuf[MAX_FRAME_LENGTH];
 	uint8_t notifBuf[MAX_FRAME_LENGTH];
-	uint8_t socketId;
+	int8_t socketId;
 	uint16_t networkId;
 	uint8_t joinKey[JOIN_KEY_LEN];
 	uint16_t service_ms;
@@ -64,6 +64,7 @@ bool dn_qsl_init(void)
 {
 	// Reset local variables
 	memset(&dn_fsm_vars, 0, sizeof (dn_fsm_vars));
+	dn_fsm_vars.socketId = -1;
 
 	// Initialize the ipmt module
 	dn_ipmt_init // Should be augmented with return value to know if successful...
@@ -97,7 +98,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		break;
 	}
 
-	while (dn_fsm_vars.state != FSM_STATE_READY)
+	while (dn_fsm_vars.state != FSM_STATE_READY && dn_fsm_vars.state != FSM_STATE_CONNECT_FAILED)
 	{
 		if ((dn_time_ms() - cmdStart_ms) > CONNECT_TIMEOUT_S * 1000)
 		{
@@ -112,7 +113,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 			usleep(FSM_RUN_INTERVAL_MS * 1000);
 		}
 	}
-	return TRUE;
+	return dn_fsm_vars.state == FSM_STATE_READY;
 }
 
 bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
@@ -158,7 +159,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 			usleep(FSM_RUN_INTERVAL_MS * 1000);
 		}
 	}
-	return TRUE;
+	return dn_fsm_vars.state == FSM_STATE_READY;
 }
 
 void dn_fsm_run(void)
@@ -219,7 +220,8 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
 			break;
 		case MOTE_STATE_OPERATIONAL:
-			dn_fsm_vars.state = FSM_STATE_READY;
+			dn_fsm_vars.state = FSM_STATE_CONNECTED;
+			fsm_scheduleEvent(CMD_PERIOD_MS, api_openSocket);
 			break;
 		}
 		dn_fsm_vars.events |= notif_events->events;
@@ -301,10 +303,11 @@ void api_getMoteStatus_reply(void)
 	switch (reply->state)
 	{
 	case MOTE_STATE_IDLE:
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_openSocket);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
 		break;
 	case MOTE_STATE_OPERATIONAL:
-		dn_fsm_vars.state = FSM_STATE_READY;
+		dn_fsm_vars.state = FSM_STATE_CONNECTED;
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_openSocket);
 		break;
 	default:
 		fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
@@ -338,12 +341,22 @@ void api_openSocket_reply(void)
 
 	// parse reply
 	reply = (dn_ipmt_openSocket_rpt*) dn_fsm_vars.replyBuf;
-
-	// store the socketID
-	dn_fsm_vars.socketId = reply->socketId;
-
-	// choose next step
-	fsm_scheduleEvent(CMD_PERIOD_MS, api_bindSocket);
+	switch (reply->RC)
+	{
+	case RC_OK:
+		debug("Socket %d opened successfully", reply->socketId);
+		dn_fsm_vars.socketId = reply->socketId;
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_bindSocket);
+		break;
+	case RC_NO_RESOURCES:
+		debug("Couldn't create socket due to resource availability");
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	}
 }
 
 void api_bindSocket(void)
@@ -365,12 +378,31 @@ void api_bindSocket(void)
 
 void api_bindSocket_reply(void)
 {
+	dn_ipmt_bindSocket_rpt* reply;
 	debug("Bind socket reply");
 	// cancel timeout
 	fsm_cancelEvent();
 
-	// choose next step
-	fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
+	reply = (dn_ipmt_bindSocket_rpt*) dn_fsm_vars.replyBuf;
+	switch (reply->RC)
+	{
+	case RC_OK:
+		debug("Socket bound successfully");
+		dn_fsm_vars.state = FSM_STATE_READY;
+		break;
+	case RC_BUSY:
+		debug("Port already bound");
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	case RC_NOT_FOUND:
+		debug("Invalid socket ID");
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	}
 }
 
 void api_join(void)
@@ -401,23 +433,28 @@ void api_join_reply(void)
 
 void api_sendTo(void)
 {
+	dn_err_t err;
 	debug("Send");
 	// arm callback
 	fsm_setReplyCallback(api_sendTo_reply);
 	
 	// issue function
-	dn_ipmt_sendTo
+	err = dn_ipmt_sendTo
 			(
 			dn_fsm_vars.socketId, // socketId
 			dn_fsm_vars.destIPv6, // destIP
 			DST_PORT, // destPort
 			0, // serviceType
-			0, // priority
+			1, // priority
 			0xffff, // packetId
 			dn_fsm_vars.payloadBuff, // payload
 			dn_fsm_vars.payloadSize, // payloadLen
 			(dn_ipmt_sendTo_rpt*) (dn_fsm_vars.replyBuf) // reply
 			);
+	if (err != DN_ERR_NONE)
+	{
+		debug("Send error: %u", err);
+	}
 
 	// schedule timeout event
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
@@ -425,11 +462,28 @@ void api_sendTo(void)
 
 void api_sendTo_reply(void)
 {
+	dn_ipmt_sendTo_rpt* reply;
 	debug("Send reply");
+	
    // cancel timeout
    fsm_cancelEvent();
    
-   dn_fsm_vars.state = FSM_STATE_READY;
+   reply = (dn_ipmt_sendTo_rpt*)dn_fsm_vars.replyBuf;
+   
+   switch (reply->RC)
+   {
+   case RC_OK:
+	   dn_fsm_vars.state = FSM_STATE_READY;
+	   break;
+   case RC_NO_RESOURCES:
+	   debug("Send failed: NO RESOURCES");
+	   dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
+	   break;
+   default:
+	   log_warn("Unexpected response code: %#x", reply->RC);
+	   dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
+	   break;
+   }   
 }
 
 //=========================== helpers =========================================
