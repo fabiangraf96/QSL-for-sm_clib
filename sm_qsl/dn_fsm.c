@@ -460,13 +460,31 @@ void api_join(void)
 
 void api_join_reply(void)
 {
+	dn_ipmt_join_rpt* reply;
 	debug("Join reply");
 	// cancel timeout
 	fsm_cancelEvent();
-
-	// choose next step
-	// no next step at this point. FSM will advance when we received a "joined"
-	// notification
+	
+	reply = (dn_ipmt_join_rpt*)dn_fsm_vars.replyBuf;
+	switch (reply->RC)
+	{
+	case RC_OK:
+		debug("Join operation started");
+		dn_fsm_vars.state = FSM_STATE_JOINING;
+		break;
+	case RC_INVALID_STATE:
+		debug("The mote is in an invalid state to start join operation");
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	case RC_INCOMPLETE_JOIN_INFO:
+		debug("Incomplete configuration to start joining");
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	}
 }
 
 void api_sendTo(void)
@@ -511,10 +529,11 @@ void api_sendTo_reply(void)
 	switch (reply->RC)
 	{
 	case RC_OK:
+		debug("Packet was queued up for transmission");
 		dn_fsm_vars.state = FSM_STATE_READY;
 		break;
 	case RC_NO_RESOURCES:
-		debug("Send failed: NO RESOURCES");
+		debug("No queue space to accept the packet");
 		dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
 		break;
 	default:
