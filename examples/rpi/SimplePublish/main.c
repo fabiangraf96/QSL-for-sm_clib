@@ -22,15 +22,24 @@
  */
 int main(int argc, char** argv)
 {
+	uint16_t netID = 1230;
+	uint8_t joinKey[JOIN_KEY_LEN] =
+	{
+		0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
+		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
+	};
+	uint32_t service_ms = 5000;
 	uint16_t message = 0xabcd;
 	uint8_t payload[2];
 	bool success = FALSE;
+	
 	debug("Initializing...");
 	success = dn_qsl_init();
 	if (success)
 	{
 		debug("Connecting...");
 		success = dn_qsl_connect(0, NULL, 0);
+		//success = dn_qsl_connect(netID, joinKey, service_ms);
 		if (success)
 		{
 			log_info("Connected to network");

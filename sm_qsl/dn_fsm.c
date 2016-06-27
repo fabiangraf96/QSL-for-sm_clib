@@ -24,7 +24,7 @@ typedef struct
 	int8_t socketId;
 	uint16_t networkId;
 	uint8_t joinKey[JOIN_KEY_LEN];
-	uint16_t service_ms;
+	uint32_t service_ms;
 	fsm_reply_callback replyCb;
 	fsm_timer_callback fsmCb;
 	uint32_t fsmEventScheduled_ms;
@@ -55,6 +55,10 @@ void api_openSocket(void);
 void api_openSocket_reply(void);
 void api_bindSocket(void);
 void api_bindSocket_reply(void);
+void api_setJoinKey(void);
+void api_setJoinKey_reply(void);
+void api_setNetworkId(void);
+void api_setNetworkId_reply(void);
 void api_join(void);
 void api_join_reply(void);
 void api_sendTo(void);
@@ -90,7 +94,33 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		log_warn("dn_qsl_connect run without being initialized");
 		return FALSE;
 	case FSM_STATE_DISCONNECTED:
-		// Check arguments vs default
+		if (netID == 0)
+		{
+			debug("No network ID given; using default");
+			dn_fsm_vars.networkId = DEFAULT_NET_ID;
+		}
+		else if (netID == 0xFFFF)
+		{
+			log_err("Invalid network ID: %#x (%u)", netID, netID);
+			return FALSE;
+		}
+		else
+		{
+			dn_fsm_vars.networkId = netID;
+		}
+		
+		if (joinKey == NULL)
+		{
+			debug("No join key given; using default");
+			memcpy(dn_fsm_vars.joinKey, DEFAULT_JOIN_KEY, JOIN_KEY_LEN);
+		}
+		else
+		{
+			memcpy(dn_fsm_vars.joinKey, joinKey, JOIN_KEY_LEN);
+		}
+		
+		dn_fsm_vars.service_ms = req_service_ms;
+		
 		fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
 	case FSM_STATE_READY:
 		// Check if args are different than current; act accordingly
@@ -341,7 +371,7 @@ void api_getMoteStatus_reply(void)
 	switch (reply->state)
 	{
 	case MOTE_STATE_IDLE:
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_setJoinKey);
 		break;
 	case MOTE_STATE_OPERATIONAL:
 		dn_fsm_vars.state = FSM_STATE_CONNECTED;
@@ -426,6 +456,7 @@ void api_bindSocket_reply(void)
 	{
 	case RC_OK:
 		debug("Socket bound successfully");
+		// TODO: Request service and wait for event svcChange
 		dn_fsm_vars.state = FSM_STATE_READY;
 		break;
 	case RC_BUSY:
@@ -434,6 +465,86 @@ void api_bindSocket_reply(void)
 		break;
 	case RC_NOT_FOUND:
 		debug("Invalid socket ID");
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	}
+}
+
+void api_setJoinKey(void)
+{
+	debug("Set join key");
+	
+	fsm_setReplyCallback(api_setJoinKey_reply);
+	
+	dn_ipmt_setParameter_joinKey
+			(
+			dn_fsm_vars.joinKey,
+			(dn_ipmt_setParameter_joinKey_rpt*)dn_fsm_vars.replyBuf
+			);
+	
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+}
+
+void api_setJoinKey_reply(void)
+{
+	dn_ipmt_setParameter_joinKey_rpt* reply;
+	debug("Set join key reply");
+	
+	fsm_cancelEvent();
+	
+	reply = (dn_ipmt_setParameter_joinKey_rpt*)dn_fsm_vars.replyBuf;
+	switch (reply->RC)
+	{
+	case RC_OK:
+		debug("Join key set");
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_setNetworkId);
+		break;
+	case RC_WRITE_FAIL:
+		debug("Could not write the key to storage");
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	}
+}
+
+void api_setNetworkId(void)
+{
+	debug("Set network ID");
+	
+	fsm_setReplyCallback(api_setNetworkId_reply);
+	
+	dn_ipmt_setParameter_networkId
+			(
+			dn_fsm_vars.networkId,
+			(dn_ipmt_setParameter_networkId_rpt*)dn_fsm_vars.replyBuf
+			);
+	
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+}
+
+void api_setNetworkId_reply(void)
+{
+	dn_ipmt_setParameter_networkId_rpt* reply;
+	debug("Set network ID reply");
+	
+	fsm_cancelEvent();
+	
+	reply = (dn_ipmt_setParameter_networkId_rpt*)dn_fsm_vars.replyBuf;
+	switch (reply->RC)
+	{
+	case RC_OK:
+		debug("Network ID set");
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
+		break;
+	case RC_WRITE_FAIL:
+		debug("Could not write the network ID to storage");
 		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
 		break;
 	default:
