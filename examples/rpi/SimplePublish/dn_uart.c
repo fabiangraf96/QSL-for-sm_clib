@@ -45,8 +45,7 @@ void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 	if (dn_uart_vars.uart_fd == -1)
 	{
 		log_err("Unable to open UART %s", portname);
-	}
-	else
+	} else
 	{
 		debug("UART opened");
 	}
@@ -79,12 +78,10 @@ void dn_uart_txByte(uint8_t byte)
 	if (rc < 0)
 	{
 		// Error
-	}
-	else if (rc == 0)
+	} else if (rc == 0)
 	{
 		// Nothing was sent
-	}
-	else
+	} else
 	{
 		//debug("dn_uart: Sent a byte");
 	}
@@ -126,12 +123,10 @@ static void* dn_uart_read_daemon(void* arg)
 		if (rc < 0)
 		{
 			// Error
-		}
-		else if (rc == 0)
+		} else if (rc == 0)
 		{
 			// Timeout
-		}
-		else
+		} else
 		{
 			// There are Bytes ready to be read
 			rxBytes = read(dn_uart_vars.uart_fd, rxBuff, MAX_FRAME_LENGTH);
