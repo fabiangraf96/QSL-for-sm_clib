@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 		0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
 		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
 	};
-	uint32_t service_ms = 5000;
+	uint32_t service_ms = 1000;
 	uint16_t message = 0xabcd;
 	uint8_t payload[2];
 	bool success = FALSE;
@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 	if (success)
 	{
 		debug("Connecting...");
-		success = dn_qsl_connect(0, NULL, 0);
+		success = dn_qsl_connect(0, NULL, service_ms);
 		//success = dn_qsl_connect(netID, joinKey, service_ms);
 		if (success)
 		{
@@ -48,18 +48,15 @@ int main(int argc, char** argv)
 			if (success)
 			{
 				debug("Sent message: %#x", message);
-			}
-			else
+			} else
 			{
 				debug("Send failed");
 			}
-		}
-		else
+		} else
 		{
 			log_info("Failed to connect");
 		}
-	}
-	else
+	} else
 	{
 		log_warn("Initialization failed");
 	}

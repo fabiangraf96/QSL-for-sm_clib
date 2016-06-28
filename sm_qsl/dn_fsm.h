@@ -26,7 +26,7 @@
 
 #define FSM_STATE_NOT_INITIALIZED	0x00
 #define FSM_STATE_DISCONNECTED		0x01
-#define FSM_STATE_PRE_JOIN			0x02
+#define FSM_STATE_CONNECTING		0x02
 #define FSM_STATE_JOINING			0x03
 #define FSM_STATE_CONNECTED			0x04
 #define FSM_STATE_CONNECT_FAILED	0x05
@@ -67,11 +67,14 @@
 #define BACKOFF_AFTER_RESET_MS		5000
 #define CMD_PERIOD_MS				1000	// number of ms between two commands being sent
 #define SERIAL_RESPONSE_TIMEOUT_MS	500		// max number of ms to wait for response
-#define CONNECT_TIMEOUT_S			60
+#define CONNECT_TIMEOUT_S			120
 #define SEND_TIMEOUT_S				5
 
 #define SERVICE_TYPE_BW		0x00
 #define SERVICE_ADDRESS		0xFFFE // Manager (only value currently supported)
+
+#define SERVICE_STATE_COMPLETED	0x00
+#define SERVICE_STATE_PENDING	0x01
 
 #define PACKET_PRIORITY_LOW		0x00
 #define PACKET_PRIORITY_MEDIUM	0x01

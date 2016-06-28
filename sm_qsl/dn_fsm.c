@@ -21,7 +21,7 @@ typedef struct
 {
 	uint8_t replyBuf[MAX_FRAME_LENGTH];
 	uint8_t notifBuf[MAX_FRAME_LENGTH];
-	int8_t socketId;
+	uint8_t socketId;
 	uint16_t networkId;
 	uint8_t joinKey[JOIN_KEY_LEN];
 	uint32_t service_ms;
@@ -63,6 +63,8 @@ void api_join(void);
 void api_join_reply(void);
 void api_requestService(void);
 void api_requestService_reply(void);
+void api_getServiceInfo(void);
+void api_getServiceInfo_reply(void);
 void api_sendTo(void);
 void api_sendTo_reply(void);
 
@@ -72,7 +74,6 @@ bool dn_qsl_init(void)
 {
 	// Reset local variables
 	memset(&dn_fsm_vars, 0, sizeof (dn_fsm_vars));
-	dn_fsm_vars.socketId = -1;
 
 	// Initialize the ipmt module
 	dn_ipmt_init // Should be augmented with return value to know if successful...
@@ -100,36 +101,34 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		{
 			debug("No network ID given; using default");
 			dn_fsm_vars.networkId = DEFAULT_NET_ID;
-		}
-		else if (netID == 0xFFFF)
+		} else if (netID == 0xFFFF)
 		{
 			log_err("Invalid network ID: %#x (%u)", netID, netID);
 			return FALSE;
-		}
-		else
+		} else
 		{
 			dn_fsm_vars.networkId = netID;
 		}
-		
+
 		if (joinKey == NULL)
 		{
 			debug("No join key given; using default");
 			memcpy(dn_fsm_vars.joinKey, DEFAULT_JOIN_KEY, JOIN_KEY_LEN);
-		}
-		else
+		} else
 		{
 			memcpy(dn_fsm_vars.joinKey, joinKey, JOIN_KEY_LEN);
 		}
-		
+
 		dn_fsm_vars.service_ms = req_service_ms;
-		
+
 		fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
 	case FSM_STATE_READY:
 		// Check if args are different than current; act accordingly
 		break;
 	default:
 		log_err("Undefined state");
-		break;
+		dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+		return FALSE;
 	}
 
 	while (dn_fsm_vars.state != FSM_STATE_READY && dn_fsm_vars.state != FSM_STATE_CONNECT_FAILED)
@@ -166,8 +165,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 		if (destIP == NULL)
 		{
 			memcpy(dn_fsm_vars.destIPv6, ipv6Addr_manager, IPv6ADDR_LEN);
-		}
-		else
+		} else
 		{
 			memcpy(dn_fsm_vars.destIPv6, destIP, IPv6ADDR_LEN);
 		}
@@ -248,18 +246,42 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	case CMDID_EVENTS:
 		notif_events = (dn_ipmt_events_nt*) dn_fsm_vars.notifBuf;
 		debug("State: %#x", notif_events->state);
-		switch (notif_events->state)
+		switch (dn_fsm_vars.state)
 		{
-		case MOTE_STATE_IDLE:
-			fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
+		case FSM_STATE_CONNECTING:
+		case FSM_STATE_JOINING:
+			switch (notif_events->state)
+			{
+			case MOTE_STATE_IDLE:
+				dn_fsm_vars.state = FSM_STATE_CONNECTING;
+				fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
+				break;
+			case MOTE_STATE_OPERATIONAL:
+				dn_fsm_vars.state = FSM_STATE_CONNECTED;
+				fsm_scheduleEvent(CMD_PERIOD_MS, api_openSocket);
+				break;
+			}
 			break;
-		case MOTE_STATE_OPERATIONAL:
-			dn_fsm_vars.state = FSM_STATE_CONNECTED;
-			fsm_scheduleEvent(CMD_PERIOD_MS, api_openSocket);
+		case FSM_STATE_REQ_SERVICE:
+			if (notif_events->state == MOTE_STATE_IDLE)
+			{
+				dn_fsm_vars.state = FSM_STATE_CONNECTING;
+				fsm_scheduleEvent(CMD_PERIOD_MS, api_getMoteStatus);
+			} else if (notif_events->events & MOTE_EVENT_MASK_SVC_CHANGE)
+			{
+				fsm_scheduleEvent(CMD_PERIOD_MS, api_getServiceInfo);
+			}
+			break;
+		case FSM_STATE_READY:
+		case FSM_STATE_SENDING:
+			if (notif_events->state == MOTE_STATE_IDLE)
+			{
+				dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+			}
 			break;
 		}
-		dn_fsm_vars.events |= notif_events->events;
-		// TODO: Check service if srcChanged received in FSM_STATE_REQ_SERVICE
+
+		//dn_fsm_vars.events |= notif_events->events; // If events to be detected elsewhere
 
 		break;
 	case CMDID_RECEIVE:
@@ -310,14 +332,14 @@ void api_response_timeout(void)
 void api_reset(void)
 {
 	debug("Reset");
-	
+
 	fsm_setReplyCallback(api_reset_reply);
-	
+
 	dn_ipmt_reset
 			(
-			(dn_ipmt_reset_rpt*)dn_fsm_vars.replyBuf
+			(dn_ipmt_reset_rpt*) dn_fsm_vars.replyBuf
 			);
-	
+
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
@@ -325,10 +347,10 @@ void api_reset_reply(void)
 {
 	dn_ipmt_reset_rpt* reply;
 	debug("Reset reply");
-	
+
 	fsm_cancelEvent();
-	
-	reply = (dn_ipmt_reset_rpt*)dn_fsm_vars.replyBuf;
+
+	reply = (dn_ipmt_reset_rpt*) dn_fsm_vars.replyBuf;
 	switch (reply->RC)
 	{
 	case RC_OK:
@@ -462,9 +484,8 @@ void api_bindSocket_reply(void)
 		// TODO: Request service and wait for event svcChange
 		if (dn_fsm_vars.service_ms > 0)
 		{
-			fsm_scheduleEvent(CMD_PERIOD_MS, api_requestService);			
-		}
-		else
+			fsm_scheduleEvent(CMD_PERIOD_MS, api_requestService);
+		} else
 		{
 			dn_fsm_vars.state = FSM_STATE_READY;
 		}
@@ -487,15 +508,15 @@ void api_bindSocket_reply(void)
 void api_setJoinKey(void)
 {
 	debug("Set join key");
-	
+
 	fsm_setReplyCallback(api_setJoinKey_reply);
-	
+
 	dn_ipmt_setParameter_joinKey
 			(
 			dn_fsm_vars.joinKey,
-			(dn_ipmt_setParameter_joinKey_rpt*)dn_fsm_vars.replyBuf
+			(dn_ipmt_setParameter_joinKey_rpt*) dn_fsm_vars.replyBuf
 			);
-	
+
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
@@ -503,10 +524,10 @@ void api_setJoinKey_reply(void)
 {
 	dn_ipmt_setParameter_joinKey_rpt* reply;
 	debug("Set join key reply");
-	
+
 	fsm_cancelEvent();
-	
-	reply = (dn_ipmt_setParameter_joinKey_rpt*)dn_fsm_vars.replyBuf;
+
+	reply = (dn_ipmt_setParameter_joinKey_rpt*) dn_fsm_vars.replyBuf;
 	switch (reply->RC)
 	{
 	case RC_OK:
@@ -527,15 +548,15 @@ void api_setJoinKey_reply(void)
 void api_setNetworkId(void)
 {
 	debug("Set network ID");
-	
+
 	fsm_setReplyCallback(api_setNetworkId_reply);
-	
+
 	dn_ipmt_setParameter_networkId
 			(
 			dn_fsm_vars.networkId,
-			(dn_ipmt_setParameter_networkId_rpt*)dn_fsm_vars.replyBuf
+			(dn_ipmt_setParameter_networkId_rpt*) dn_fsm_vars.replyBuf
 			);
-	
+
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
@@ -543,10 +564,10 @@ void api_setNetworkId_reply(void)
 {
 	dn_ipmt_setParameter_networkId_rpt* reply;
 	debug("Set network ID reply");
-	
+
 	fsm_cancelEvent();
-	
-	reply = (dn_ipmt_setParameter_networkId_rpt*)dn_fsm_vars.replyBuf;
+
+	reply = (dn_ipmt_setParameter_networkId_rpt*) dn_fsm_vars.replyBuf;
 	switch (reply->RC)
 	{
 	case RC_OK:
@@ -585,8 +606,8 @@ void api_join_reply(void)
 	debug("Join reply");
 	// cancel timeout
 	fsm_cancelEvent();
-	
-	reply = (dn_ipmt_join_rpt*)dn_fsm_vars.replyBuf;
+
+	reply = (dn_ipmt_join_rpt*) dn_fsm_vars.replyBuf;
 	switch (reply->RC)
 	{
 	case RC_OK:
@@ -611,32 +632,84 @@ void api_join_reply(void)
 void api_requestService(void)
 {
 	debug("Request service");
-	
+
 	fsm_setReplyCallback(api_requestService_reply);
-	
+
 	dn_ipmt_requestService
 			(
 			SERVICE_ADDRESS,
 			SERVICE_TYPE_BW,
 			dn_fsm_vars.service_ms,
-			(dn_ipmt_requestService_rpt*)dn_fsm_vars.replyBuf
+			(dn_ipmt_requestService_rpt*) dn_fsm_vars.replyBuf
 			);
-	
+
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
+
 void api_requestService_reply(void)
 {
 	dn_ipmt_requestService_rpt* reply;
 	debug("Request service reply");
-	
+
 	fsm_cancelEvent();
-	
-	reply = (dn_ipmt_requestService_rpt*)dn_fsm_vars.replyBuf;
+
+	reply = (dn_ipmt_requestService_rpt*) dn_fsm_vars.replyBuf;
 	switch (reply->RC)
 	{
 	case RC_OK:
 		debug("Service request accepted");
 		dn_fsm_vars.state = FSM_STATE_REQ_SERVICE;
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		dn_fsm_vars.state = FSM_STATE_CONNECT_FAILED;
+		break;
+	}
+}
+
+void api_getServiceInfo(void)
+{
+	debug("Get service info");
+
+	fsm_setReplyCallback(api_getServiceInfo_reply);
+
+	dn_ipmt_getServiceInfo
+			(
+			SERVICE_ADDRESS,
+			SERVICE_TYPE_BW,
+			(dn_ipmt_getServiceInfo_rpt*) dn_fsm_vars.replyBuf
+			);
+
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+}
+
+void api_getServiceInfo_reply(void)
+{
+	dn_ipmt_getServiceInfo_rpt* reply;
+	debug("Get service info reply");
+
+	fsm_cancelEvent();
+
+	reply = (dn_ipmt_getServiceInfo_rpt*) dn_fsm_vars.replyBuf;
+	switch (reply->RC)
+	{
+	case RC_OK:
+		if (reply->state == SERVICE_STATE_COMPLETED)
+		{
+			if (reply->value <= dn_fsm_vars.service_ms)
+			{
+				log_info("Granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
+			} else
+			{
+				log_warn("Only granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
+				// Should maybe fail?
+			}
+			dn_fsm_vars.state = FSM_STATE_READY;
+		} else
+		{
+			debug("Service request still pending");
+			fsm_scheduleEvent(CMD_PERIOD_MS, api_getServiceInfo);
+		}
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
