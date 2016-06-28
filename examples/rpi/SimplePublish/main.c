@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 	if (success)
 	{
 		debug("Connecting...");
-		success = dn_qsl_connect(0, NULL, service_ms);
+		success = dn_qsl_connect(0, NULL, 0);
 		//success = dn_qsl_connect(netID, joinKey, service_ms);
 		if (success)
 		{
