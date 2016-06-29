@@ -125,8 +125,8 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 
 		dn_fsm_vars.service_ms = req_service_ms;
 
-		fsm_enterState(FSM_STATE_CONNECTING, 0);
-	case FSM_STATE_READY:
+		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
+	case FSM_STATE_CONNECTED:
 		// Check if args are different than current; act accordingly
 		break;
 	default:
@@ -135,7 +135,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		return FALSE;
 	}
 
-	while (dn_fsm_vars.state != FSM_STATE_READY && dn_fsm_vars.state != FSM_STATE_CONNECT_FAILED)
+	while (dn_fsm_vars.state != FSM_STATE_CONNECTED && dn_fsm_vars.state != FSM_STATE_DISCONNECTED)
 	{
 		if ((dn_time_ms() - cmdStart_ms) > CONNECT_TIMEOUT_S * 1000)
 		{
@@ -150,7 +150,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 			usleep(FSM_RUN_INTERVAL_MS * 1000);
 		}
 	}
-	return dn_fsm_vars.state == FSM_STATE_READY;
+	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
 bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
@@ -158,7 +158,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 	uint32_t cmdStart_ms = dn_time_ms();
 	switch (dn_fsm_vars.state)
 	{
-	case FSM_STATE_READY:
+	case FSM_STATE_CONNECTED:
 		if (payloadSize_B > PAYLOAD_LIMIT)
 		{
 			log_warn("Payload size (%u) exceeds limit (%u)", payloadSize_B, PAYLOAD_LIMIT);
@@ -185,7 +185,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 		if ((dn_time_ms() - cmdStart_ms) > SEND_TIMEOUT_S * 1000)
 		{
 			debug("Send timeout");
-			dn_fsm_vars.state = FSM_STATE_READY;
+			dn_fsm_vars.state = FSM_STATE_CONNECTED;
 			dn_fsm_vars.replyCb = NULL;
 			fsm_cancelEvent();
 			return FALSE;
@@ -195,7 +195,12 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 			usleep(FSM_RUN_INTERVAL_MS * 1000);
 		}
 	}
-	return dn_fsm_vars.state == FSM_STATE_READY;
+	if (dn_fsm_vars.state == FSM_STATE_SEND_FAILED)
+	{
+		dn_fsm_vars.state = FSM_STATE_CONNECTED;
+		return FALSE;
+	}
+	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
 void dn_fsm_run(void)
@@ -251,43 +256,49 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		notif_events = (dn_ipmt_events_nt*) dn_fsm_vars.notifBuf;
 		debug("State: %#x | Events: %#x", notif_events->state, notif_events->events);
 		
-		if (notif_events->events & MOTE_EVENT_MASK_DISCONNECTED)
-		{
-			return;
-		}
-		
 		switch (dn_fsm_vars.state)
 		{
-		case FSM_STATE_CONNECTING:
-			switch (notif_events->state)
+		case FSM_STATE_JOINING:
+			if (notif_events->events & MOTE_EVENT_MASK_OPERATIONAL)
 			{
-			case MOTE_STATE_IDLE:
-				fsm_enterState(FSM_STATE_CONNECTING, 0);
-				break;
-			case MOTE_STATE_OPERATIONAL:
-				fsm_enterState(FSM_STATE_CONNECTED, 0);
-				break;
-			}
-			break;
-		case FSM_STATE_CONNECTED:
-			if (notif_events->state == MOTE_STATE_IDLE)
-			{
-				fsm_enterState(FSM_STATE_CONNECTING, 0);
+				if (dn_fsm_vars.service_ms > 0)
+				{
+					fsm_enterState(FSM_STATE_REQ_SERVICE, 0);
+				} else
+				{
+					fsm_enterState(FSM_STATE_CONNECTED, 0);
+				}
+				return;
 			}
 		case FSM_STATE_REQ_SERVICE:
-			if (notif_events->state == MOTE_STATE_IDLE)
-			{
-				fsm_enterState(FSM_STATE_CONNECTING, 0);
-			} else if (notif_events->events & MOTE_EVENT_MASK_SVC_CHANGE)
+			if (notif_events->events & MOTE_EVENT_MASK_SVC_CHANGE)
 			{
 				fsm_scheduleEvent(CMD_PERIOD_MS, api_getServiceInfo);
+				return;
+			}
+		}
+		
+		switch (notif_events->state)
+		{
+		case MOTE_STATE_IDLE:
+			switch (dn_fsm_vars.state)
+			{
+			case FSM_STATE_PRE_JOIN:
+			case FSM_STATE_JOINING:
+			case FSM_STATE_REQ_SERVICE:
+				fsm_enterState(FSM_STATE_PRE_JOIN, 0);
+				break;
+			case FSM_STATE_CONNECTED:
+				fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+				break;
 			}
 			break;
-		case FSM_STATE_READY:
-		case FSM_STATE_SENDING:
-			if (notif_events->state == MOTE_STATE_IDLE)
+		case MOTE_STATE_OPERATIONAL:
+			switch (dn_fsm_vars.state)
 			{
-				fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+			case FSM_STATE_PRE_JOIN:
+				fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
+				break;						
 			}
 			break;
 		}
@@ -335,7 +346,7 @@ void api_response_timeout(void)
 		dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
 		break;
 	default:
-		fsm_enterState(FSM_STATE_CONNECTING, 0);
+		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
 		break;
 	}
 }
@@ -366,7 +377,7 @@ void api_reset_reply(void)
 	{
 	case RC_OK:
 		debug("Mote soft-reset initiated");
-		fsm_enterState(FSM_STATE_CONNECTING, BACKOFF_AFTER_RESET_MS);
+		fsm_enterState(FSM_STATE_PRE_JOIN, BACKOFF_AFTER_RESET_MS);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -401,7 +412,7 @@ void api_disconnect_reply(void)
 	{
 	case RC_OK:
 		debug("Mote disconnect initiated");
-		fsm_enterState(FSM_STATE_CONNECTING, BACKOFF_AFTER_DISCONNECT_MS);
+		fsm_enterState(FSM_STATE_PRE_JOIN, BACKOFF_AFTER_DISCONNECT_MS);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -441,13 +452,13 @@ void api_getMoteStatus_reply(void)
 	switch (reply->state)
 	{
 	case MOTE_STATE_IDLE:
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_setJoinKey);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_openSocket);
 		break;
 	case MOTE_STATE_OPERATIONAL:
-		fsm_enterState(FSM_STATE_CONNECTED, 0);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
 		break;
 	default:
-		fsm_enterState(FSM_STATE_CONNECTING, 0);
+		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
 		break;
 	}
 }
@@ -488,7 +499,7 @@ void api_openSocket_reply(void)
 	case RC_NO_RESOURCES:
 		debug("Couldn't create socket due to resource availability");
 		// Own state for disconnecting?
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_disconnect);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -526,18 +537,12 @@ void api_bindSocket_reply(void)
 	{
 	case RC_OK:
 		debug("Socket bound successfully");
-		if (dn_fsm_vars.service_ms > 0)
-		{
-			fsm_enterState(FSM_STATE_REQ_SERVICE, 0);
-		} else
-		{
-			fsm_enterState(FSM_STATE_READY, 0);
-		}
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_setJoinKey);
 		break;
 	case RC_BUSY:
 		debug("Port already bound");
 		// Own state for disconnect?
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_disconnect);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
 		break;
 	case RC_NOT_FOUND:
 		debug("Invalid socket ID");
@@ -657,14 +662,15 @@ void api_join_reply(void)
 	{
 	case RC_OK:
 		debug("Join operation started");
+		fsm_enterState(FSM_STATE_JOINING, 0);
 		break;
 	case RC_INVALID_STATE:
 		debug("The mote is in an invalid state to start join operation");
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
 		break;
 	case RC_INCOMPLETE_JOIN_INFO:
 		debug("Incomplete configuration to start joining");
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -702,7 +708,7 @@ void api_requestService_reply(void)
 	{
 	case RC_OK:
 		debug("Service request accepted");
-		dn_fsm_vars.state = FSM_STATE_REQ_SERVICE;
+		// Will wait for svcChanged notification
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -748,7 +754,7 @@ void api_getServiceInfo_reply(void)
 				log_warn("Only granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
 				// Should maybe fail?
 			}
-			fsm_enterState(FSM_STATE_READY, 0);
+			fsm_enterState(FSM_STATE_CONNECTED, 0);
 		} else
 		{
 			debug("Service request still pending");
@@ -804,7 +810,7 @@ void api_sendTo_reply(void)
 	{
 	case RC_OK:
 		debug("Packet was queued up for transmission");
-		dn_fsm_vars.state = FSM_STATE_READY;
+		dn_fsm_vars.state = FSM_STATE_CONNECTED;
 		break;
 	case RC_NO_RESOURCES:
 		debug("No queue space to accept the packet");
@@ -828,17 +834,15 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	}
 	switch(newState)
 	{
-	case FSM_STATE_CONNECTING:
+	case FSM_STATE_PRE_JOIN:
 		fsm_scheduleEvent(delay, api_getMoteStatus);
-		break;
-	case FSM_STATE_CONNECTED:
-		fsm_scheduleEvent(delay, api_openSocket);
 		break;
 	case FSM_STATE_REQ_SERVICE:
 		fsm_scheduleEvent(delay, api_requestService);
 		break;
+	case FSM_STATE_JOINING:
 	case FSM_STATE_DISCONNECTED:
-	case FSM_STATE_READY:
+	case FSM_STATE_CONNECTED:
 		break;
 	default:
 		log_warn("Attempt at entering unexpected state %u", newState);
