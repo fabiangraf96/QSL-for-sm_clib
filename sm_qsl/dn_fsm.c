@@ -157,6 +157,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
+// TODO: Take DEST_PORT as arg instead of IP
 bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
@@ -289,6 +290,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			case FSM_STATE_PRE_JOIN:
 			case FSM_STATE_JOINING:
 			case FSM_STATE_REQ_SERVICE:
+			case FSM_STATE_RESETTING:
 				fsm_enterState(FSM_STATE_PRE_JOIN, 0);
 				break;
 			case FSM_STATE_CONNECTED:
@@ -415,7 +417,7 @@ void api_disconnect_reply(void)
 	{
 	case RC_OK:
 		debug("Mote disconnect initiated");
-		fsm_enterState(FSM_STATE_PRE_JOIN, BACKOFF_AFTER_DISCONNECT_MS);
+		//fsm_enterState(FSM_STATE_PRE_JOIN, BACKOFF_AFTER_DISCONNECT_MS);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -873,7 +875,8 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 		fsm_scheduleEvent(delay, api_requestService);
 		break;
 	case FSM_STATE_RESETTING:
-		fsm_scheduleEvent(delay, api_reset);
+		//fsm_scheduleEvent(delay, api_reset);
+		fsm_scheduleEvent(delay, api_disconnect);
 		break;
 	case FSM_STATE_SENDING:
 		fsm_scheduleEvent(CMD_PERIOD_MS, api_sendTo);
