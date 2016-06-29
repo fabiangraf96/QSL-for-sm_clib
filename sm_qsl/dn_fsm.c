@@ -70,6 +70,7 @@ void api_getServiceInfo_reply(void);
 void api_sendTo(void);
 void api_sendTo_reply(void);
 
+static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms);
 static void fsm_enterState(uint8_t newState, uint16_t spesificDelay);
 
 //=========================== public ==========================================
@@ -95,39 +96,42 @@ bool dn_qsl_init(void)
 bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
+	dn_err_t err;
 	switch (dn_fsm_vars.state)
 	{
 	case FSM_STATE_NOT_INITIALIZED:
 		log_warn("dn_qsl_connect run without being initialized");
 		return FALSE;
 	case FSM_STATE_DISCONNECTED:
-		if (netID == 0)
+		debug("dn_qsl_connect while DISCONNECTED");
+		err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
+		if (err != DN_ERR_NONE)
 		{
-			debug("No network ID given; using default");
-			dn_fsm_vars.networkId = DEFAULT_NET_ID;
-		} else if (netID == 0xFFFF)
-		{
-			log_err("Invalid network ID: %#x (%u)", netID, netID);
 			return FALSE;
-		} else
-		{
-			dn_fsm_vars.networkId = netID;
 		}
-
-		if (joinKey == NULL)
-		{
-			debug("No join key given; using default");
-			memcpy(dn_fsm_vars.joinKey, DEFAULT_JOIN_KEY, JOIN_KEY_LEN);
-		} else
-		{
-			memcpy(dn_fsm_vars.joinKey, joinKey, JOIN_KEY_LEN);
-		}
-
-		dn_fsm_vars.service_ms = req_service_ms;
-
 		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
+		break;
 	case FSM_STATE_CONNECTED:
-		// Check if args are different than current; act accordingly
+		debug("dn_qsl_connect while CONNECTED");
+		if ((netID > 0 && netID != dn_fsm_vars.networkId) ||
+				(joinKey != NULL && memcmp(joinKey, dn_fsm_vars.joinKey, JOIN_KEY_LEN) != 0))
+		{
+			err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
+			if (err != DN_ERR_NONE)
+			{
+				return FALSE;
+			}
+			debug("New network ID and/or join key; reconnecting...");
+			fsm_enterState(FSM_STATE_RESETTING, 0);
+		} else if (req_service_ms > 0 && req_service_ms != dn_fsm_vars.service_ms)
+		{
+			debug("New service request");
+			dn_fsm_vars.service_ms = req_service_ms;
+			fsm_enterState(FSM_STATE_REQ_SERVICE, 0);
+		} else
+		{
+			debug("Already connected");
+		}
 		break;
 	default:
 		log_err("Undefined state");
@@ -140,7 +144,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		if ((dn_time_ms() - cmdStart_ms) > CONNECT_TIMEOUT_S * 1000)
 		{
 			debug("Connect timeout");
-			dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+			fsm_enterState(FSM_STATE_DISCONNECTED, 0);
 			dn_fsm_vars.replyCb = NULL;
 			fsm_cancelEvent();
 			return FALSE;
@@ -173,8 +177,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 		{
 			memcpy(dn_fsm_vars.destIPv6, destIP, IPv6ADDR_LEN);
 		}
-		dn_fsm_vars.state = FSM_STATE_SENDING;
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_sendTo);
+		fsm_enterState(FSM_STATE_SENDING, 0);
 		break;
 	default:
 		return FALSE;
@@ -185,7 +188,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 		if ((dn_time_ms() - cmdStart_ms) > SEND_TIMEOUT_S * 1000)
 		{
 			debug("Send timeout");
-			dn_fsm_vars.state = FSM_STATE_CONNECTED;
+			fsm_enterState(FSM_STATE_CONNECTED, 0);
 			dn_fsm_vars.replyCb = NULL;
 			fsm_cancelEvent();
 			return FALSE;
@@ -197,7 +200,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 	}
 	if (dn_fsm_vars.state == FSM_STATE_SEND_FAILED)
 	{
-		dn_fsm_vars.state = FSM_STATE_CONNECTED;
+		fsm_enterState(FSM_STATE_CONNECTED, 0);
 		return FALSE;
 	}
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
@@ -297,7 +300,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			switch (dn_fsm_vars.state)
 			{
 			case FSM_STATE_PRE_JOIN:
-				fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
+				fsm_enterState(FSM_STATE_RESETTING, 0);
 				break;						
 			}
 			break;
@@ -343,7 +346,7 @@ void api_response_timeout(void)
 	switch (dn_fsm_vars.state)
 	{
 	case FSM_STATE_SENDING:
-		dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
+		fsm_enterState(FSM_STATE_SEND_FAILED, 0);
 		break;
 	default:
 		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
@@ -455,10 +458,10 @@ void api_getMoteStatus_reply(void)
 		fsm_scheduleEvent(CMD_PERIOD_MS, api_openSocket);
 		break;
 	case MOTE_STATE_OPERATIONAL:
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
+		fsm_enterState(FSM_STATE_RESETTING, 0);
 		break;
 	default:
-		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
+		fsm_enterState(FSM_STATE_RESETTING, 0);
 		break;
 	}
 }
@@ -499,7 +502,7 @@ void api_openSocket_reply(void)
 	case RC_NO_RESOURCES:
 		debug("Couldn't create socket due to resource availability");
 		// Own state for disconnecting?
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
+		fsm_enterState(FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -542,7 +545,7 @@ void api_bindSocket_reply(void)
 	case RC_BUSY:
 		debug("Port already bound");
 		// Own state for disconnect?
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
+		fsm_enterState(FSM_STATE_RESETTING, 0);
 		break;
 	case RC_NOT_FOUND:
 		debug("Invalid socket ID");
@@ -666,11 +669,11 @@ void api_join_reply(void)
 		break;
 	case RC_INVALID_STATE:
 		debug("The mote is in an invalid state to start join operation");
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
+		fsm_enterState(FSM_STATE_RESETTING, 0);
 		break;
 	case RC_INCOMPLETE_JOIN_INFO:
 		debug("Incomplete configuration to start joining");
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
+		fsm_enterState(FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -814,16 +817,45 @@ void api_sendTo_reply(void)
 		break;
 	case RC_NO_RESOURCES:
 		debug("No queue space to accept the packet");
-		dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
+		fsm_enterState(FSM_STATE_SEND_FAILED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		dn_fsm_vars.state = FSM_STATE_SEND_FAILED;
+		fsm_enterState(FSM_STATE_SEND_FAILED, 0);
 		break;
 	}
 }
 
 //=========================== helpers =========================================
+
+static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
+{
+	if (netID == 0)
+	{
+		debug("No network ID given; using default");
+		dn_fsm_vars.networkId = DEFAULT_NET_ID;
+	} else if (netID == 0xFFFF)
+	{
+		log_err("Invalid network ID: %#x (%u)", netID, netID);
+		return DN_ERR_MALFORMED;
+	} else
+	{
+		dn_fsm_vars.networkId = netID;
+	}
+
+	if (joinKey == NULL)
+	{
+		debug("No join key given; using default");
+		memcpy(dn_fsm_vars.joinKey, DEFAULT_JOIN_KEY, JOIN_KEY_LEN);
+	} else
+	{
+		memcpy(dn_fsm_vars.joinKey, joinKey, JOIN_KEY_LEN);
+	}
+
+	dn_fsm_vars.service_ms = req_service_ms;
+	
+	return DN_ERR_NONE;
+}
 
 static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 {
@@ -840,6 +872,13 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	case FSM_STATE_REQ_SERVICE:
 		fsm_scheduleEvent(delay, api_requestService);
 		break;
+	case FSM_STATE_RESETTING:
+		fsm_scheduleEvent(delay, api_reset);
+		break;
+	case FSM_STATE_SENDING:
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_sendTo);
+		break;
+	case FSM_STATE_SEND_FAILED:
 	case FSM_STATE_JOINING:
 	case FSM_STATE_DISCONNECTED:
 	case FSM_STATE_CONNECTED:

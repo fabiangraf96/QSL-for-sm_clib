@@ -29,6 +29,7 @@
 #define FSM_STATE_PRE_JOIN			0x02
 #define FSM_STATE_JOINING			0x03
 #define FSM_STATE_REQ_SERVICE		0x04
+#define FSM_STATE_RESETTING			0x05
 #define FSM_STATE_CONNECTED			0x0f
 #define FSM_STATE_SENDING			0x10
 #define FSM_STATE_SEND_FAILED		0x11
@@ -66,7 +67,7 @@
 #define BACKOFF_AFTER_DISCONNECT_MS	30000
 #define CMD_PERIOD_MS				1000	// number of ms between two commands being sent
 #define SERIAL_RESPONSE_TIMEOUT_MS	500		// max number of ms to wait for response
-#define CONNECT_TIMEOUT_S			60
+#define CONNECT_TIMEOUT_S			120
 #define SEND_TIMEOUT_S				5
 
 #define SERVICE_TYPE_BW		0x00
