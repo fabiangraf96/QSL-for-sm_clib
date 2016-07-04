@@ -4,10 +4,6 @@
  * and open the template in the editor.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include "dn_fsm.h"
 #include "dn_ipmt.h"
 #include "dn_time.h"
@@ -151,7 +147,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		} else
 		{
 			dn_fsm_run();
-			usleep(FSM_RUN_INTERVAL_MS * 1000);
+			dn_sleep_ms(FSM_RUN_INTERVAL_MS);
 		}
 	}
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
@@ -196,7 +192,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 		} else
 		{
 			dn_fsm_run();
-			usleep(FSM_RUN_INTERVAL_MS * 1000);
+			dn_sleep_ms(FSM_RUN_INTERVAL_MS);
 		}
 	}
 	if (dn_fsm_vars.state == FSM_STATE_SEND_FAILED)

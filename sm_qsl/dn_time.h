@@ -29,6 +29,7 @@
 #endif
 
 uint32_t dn_time_ms(void);
+void dn_sleep_ms(uint32_t milliseconds);
 
 #ifdef __cplusplus
 }
