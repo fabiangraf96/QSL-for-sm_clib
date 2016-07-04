@@ -89,7 +89,7 @@ bool dn_qsl_init(void)
 			dn_ipmt_reply_cb
 			);
 
-	dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+	fsm_enterState(FSM_STATE_DISCONNECTED, 0);
 	return TRUE;
 }
 
@@ -382,7 +382,7 @@ void api_reset_reply(void)
 	{
 	case RC_OK:
 		debug("Mote soft-reset initiated");
-		fsm_enterState(FSM_STATE_PRE_JOIN, BACKOFF_AFTER_RESET_MS);
+		//fsm_enterState(FSM_STATE_PRE_JOIN, BACKOFF_AFTER_RESET_MS);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -627,7 +627,7 @@ void api_setNetworkId_reply(void)
 	{
 	case RC_OK:
 		debug("Network ID set");
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
+		fsm_enterState(FSM_STATE_JOINING, 0);
 		break;
 	case RC_WRITE_FAIL:
 		debug("Could not write the network ID to storage");
@@ -667,7 +667,7 @@ void api_join_reply(void)
 	{
 	case RC_OK:
 		debug("Join operation started");
-		fsm_enterState(FSM_STATE_JOINING, 0);
+		// Will wait for operational event
 		break;
 	case RC_INVALID_STATE:
 		debug("The mote is in an invalid state to start join operation");
@@ -871,6 +871,9 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	case FSM_STATE_PRE_JOIN:
 		fsm_scheduleEvent(delay, api_getMoteStatus);
 		break;
+	case FSM_STATE_JOINING:
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
+		break;
 	case FSM_STATE_REQ_SERVICE:
 		fsm_scheduleEvent(delay, api_requestService);
 		break;
@@ -882,7 +885,6 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 		fsm_scheduleEvent(CMD_PERIOD_MS, api_sendTo);
 		break;
 	case FSM_STATE_SEND_FAILED:
-	case FSM_STATE_JOINING:
 	case FSM_STATE_DISCONNECTED:
 	case FSM_STATE_CONNECTED:
 		break;

@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 	success = dn_qsl_init();
 	if (success)
 	{
-		// Test default connect and sending a message
+		/*// Test default connect and sending a message
 		debug("Connecting...");
 		success = dn_qsl_connect(0, NULL, 0);
 		if (success)
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 		{
 			log_info("Failed to connect");
 		}
-		
+		*/
 		// Test connect with new netID and join Key (will fail wo second mng)
 		debug("Changing network ID and join key");
 		success = dn_qsl_connect(netID, joinKey, 0);
