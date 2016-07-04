@@ -80,9 +80,6 @@
 #define PACKET_PRIORITY_MEDIUM	0x01
 #define PACKET_PRIORITY_HIGH	0x02
 
-#define SRC_PORT	0xf0b8
-#define DST_PORT	0xf0b8
-
 //=========================== typedef =========================================
 
 typedef void (*fsm_timer_callback)(void);

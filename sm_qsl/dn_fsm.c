@@ -30,6 +30,7 @@ typedef struct
 	uint8_t payloadBuff[PAYLOAD_LIMIT];
 	uint8_t payloadSize;
 	uint8_t destIPv6[IPv6ADDR_LEN];
+	uint16_t destPort;
 } dn_fsm_vars_t;
 
 dn_fsm_vars_t dn_fsm_vars;
@@ -153,8 +154,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
-// TODO: Take DEST_PORT as arg instead of IP
-bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
+bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
 	switch (dn_fsm_vars.state)
@@ -167,12 +167,14 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint8_t* destIP)
 		}
 		memcpy(dn_fsm_vars.payloadBuff, payload, payloadSize_B);
 		dn_fsm_vars.payloadSize = payloadSize_B;
-		if (destIP == NULL)
+		memcpy(dn_fsm_vars.destIPv6, DEST_IP, IPv6ADDR_LEN);
+		if (destPort == 0)
 		{
-			memcpy(dn_fsm_vars.destIPv6, ipv6Addr_manager, IPv6ADDR_LEN);
+			dn_fsm_vars.destPort = DEFAULT_DEST_PORT;
 		} else
 		{
-			memcpy(dn_fsm_vars.destIPv6, destIP, IPv6ADDR_LEN);
+			// TODO: Add check for use of reserved ports
+			dn_fsm_vars.destPort = destPort;
 		}
 		fsm_enterState(FSM_STATE_SENDING, 0);
 		break;
@@ -220,7 +222,7 @@ void dn_fsm_run(void)
 
 void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
 {
-	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms();
+	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms(); // TODO: Move to each cmd
 	dn_fsm_vars.fsmDelay_ms = delay_ms;
 	dn_fsm_vars.fsmCb = cb;
 }
@@ -518,7 +520,7 @@ void api_bindSocket(void)
 	// issue function
 	dn_ipmt_bindSocket(
 			dn_fsm_vars.socketId, // socketId
-			SRC_PORT, // port
+			INBOX_PORT, // port
 			(dn_ipmt_bindSocket_rpt*) (dn_fsm_vars.replyBuf) // reply
 			);
 
@@ -781,7 +783,7 @@ void api_sendTo(void)
 			(
 			dn_fsm_vars.socketId, // socketId
 			dn_fsm_vars.destIPv6, // destIP
-			DST_PORT, // destPort
+			dn_fsm_vars.destPort, // destPort
 			SERVICE_TYPE_BW, // serviceType
 			PACKET_PRIORITY_MEDIUM, // priority
 			0xffff, // packetId
@@ -878,7 +880,7 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 		fsm_scheduleEvent(delay, api_disconnect);
 		break;
 	case FSM_STATE_SENDING:
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_sendTo);
+		api_sendTo();
 		break;
 	case FSM_STATE_SEND_FAILED:
 	case FSM_STATE_DISCONNECTED:

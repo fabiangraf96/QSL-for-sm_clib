@@ -8,6 +8,7 @@
       <itemPath>../../../sm_clib/sm_clib/dn_clib_version.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_common.h</itemPath>
       <itemPath>../../../sm_qsl/dn_debug.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_defaults.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_endianness.h</itemPath>
       <itemPath>../../../sm_qsl/dn_fsm.h</itemPath>
       <itemPath>../../../sm_clib/sm_clib/dn_hdlc.h</itemPath>
@@ -133,6 +134,8 @@
       </item>
       <item path="../../../sm_qsl/dn_debug.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../../../sm_qsl/dn_defaults.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../../../sm_qsl/dn_fsm.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="../../../sm_qsl/dn_fsm.h" ex="false" tool="3" flavor2="0">
@@ -233,6 +236,8 @@
       <item path="../../../sm_clib/sm_clib/dn_uart.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../../../sm_qsl/dn_debug.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_defaults.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../../../sm_qsl/dn_fsm.c" ex="false" tool="0" flavor2="0">
       </item>

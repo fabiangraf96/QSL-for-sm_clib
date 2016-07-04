@@ -30,11 +30,11 @@ int main(int argc, char** argv)
 		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
 	};
 	uint32_t service_ms = 5000;
+	uint16_t destPort = 0xf0b8;
 	uint16_t message = 0xabcd;
 	uint8_t payload[2];
 	bool success = FALSE;
 	dn_write_uint16_t(payload, message);
-	uint32_t lastPublish;
 	
 	debug("Initializing...");
 	success = dn_qsl_init();
@@ -46,10 +46,9 @@ int main(int argc, char** argv)
 		if (success)
 		{
 			log_info("Connected to network");
-			success = dn_qsl_send(payload, sizeof(message), NULL);
+			success = dn_qsl_send(payload, sizeof(message), 0);
 			if (success)
 			{
-				lastPublish = dn_time_ms();
 				debug("Sent message: %#x", message);
 			} else
 			{
@@ -66,15 +65,6 @@ int main(int argc, char** argv)
 		if (success)
 		{
 			log_info("Connected to network");
-			success = dn_qsl_send(payload, sizeof(message), NULL);
-			if (success)
-			{
-				lastPublish = dn_time_ms();
-				debug("Sent message: %#x", message);
-			} else
-			{
-				debug("Send failed");
-			}
 		} else
 		{
 			log_info("Failed to connect");
@@ -89,19 +79,15 @@ int main(int argc, char** argv)
 			
 			while (dn_qsl_connect(0, NULL, 0))
 			{
-				success = dn_qsl_send(payload, sizeof (message), NULL);
+				success = dn_qsl_send(payload, sizeof (message), destPort);
 				if (success)
 				{
-					lastPublish = dn_time_ms();
 					debug("Sent message: %#x", message);
 				} else
 				{
 					debug("Send failed");
 				}
-				while (lastPublish + service_ms > dn_time_ms())
-				{
-					usleep((lastPublish + service_ms - dn_time_ms())*1000);
-				}
+				dn_sleep_ms(service_ms);
 			}
 		} else
 		{
