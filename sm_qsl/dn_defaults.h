@@ -21,7 +21,12 @@
 #define IPv6ADDR_LEN	16
 #define JOIN_KEY_LEN	16
 
-#define PAYLOAD_LIMIT	71 // TODO: Extend with more limits
+#define PAYLOAD_SIZE_LIMIT_MNG_HIGH	90
+#define PAYLOAD_SIZE_LIMIT_MNG_MED	88
+#define PAYLOAD_SIZE_LIMIT_MNG_LOW	87
+#define PAYLOAD_SIZE_LIMIT_IP_HIGH	74
+#define PAYLOAD_SIZE_LIMIT_IP_MED	72
+#define PAYLOAD_SIZE_LIMIT_IP_LOW	71
 
 #define MIN_TX_INTERPACKET_DELAY	20
 
@@ -43,11 +48,13 @@ static const uint8_t default_manager_ipv6Addr[IPv6ADDR_LEN] = {
    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02
 };
 
-#define DEFAULT_NET_ID		1229
-#define DEFAULT_JOIN_KEY	(uint8_t*)default_joinKey
-#define DEFAULT_DEST_PORT	WELL_KNOWN_PORT_1
-#define DEFAULT_DEST_IP		(uint8_t*)default_manager_ipv6Addr
-#define DEFAULT_SRC_PORT	WELL_KNOWN_PORT_1
+#define DEFAULT_NET_ID				1229
+#define DEFAULT_JOIN_KEY			(uint8_t*)default_joinKey
+#define DEFAULT_DEST_PORT			WELL_KNOWN_PORT_1
+#define DEFAULT_DEST_IP				(uint8_t*)default_manager_ipv6Addr
+#define DEFAULT_SRC_PORT			WELL_KNOWN_PORT_1
+#define DEFAULT_PAYLOAD_SIZE_LIMIT	PAYLOAD_SIZE_LIMIT_MNG_HIGH
+#define DEFAULT_SERVICE_MS			9000
 
 
 //=========================== typedef =========================================

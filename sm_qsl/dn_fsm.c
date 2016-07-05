@@ -31,12 +31,12 @@ typedef struct
 	uint32_t events;
 	uint8_t state;
 	// send
-	uint8_t payloadBuff[PAYLOAD_LIMIT];
+	uint8_t payloadBuff[DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t payloadSize;
 	uint8_t destIPv6[IPv6ADDR_LEN];
 	uint16_t destPort;
 	// read
-	uint8_t inboxBuf[INBOX_SIZE][PAYLOAD_LIMIT];
+	uint8_t inboxBuf[INBOX_SIZE][DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t inboxSize[INBOX_SIZE];
 	uint8_t inboxLength;
 	uint8_t inboxHead;
@@ -81,6 +81,7 @@ void api_sendTo_reply(void);
 
 static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms);
 static void fsm_enterState(uint8_t newState, uint16_t spesificDelay);
+static uint8_t checkPayloadLimit(uint16_t destPort);
 
 //=========================== public ==========================================
 
@@ -174,12 +175,15 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
+	uint8_t maxPayloadSize;
 	switch (dn_fsm_vars.state)
 	{
 	case FSM_STATE_CONNECTED:
-		if (payloadSize_B > PAYLOAD_LIMIT)
+		maxPayloadSize = checkPayloadLimit(destPort);
+		
+		if (payloadSize_B > maxPayloadSize)
 		{
-			log_warn("Payload size (%u) exceeds limit (%u)", payloadSize_B, PAYLOAD_LIMIT);
+			log_warn("Payload size (%u) exceeds limit (%u)", payloadSize_B, maxPayloadSize);
 			return FALSE;
 		}
 		memcpy(dn_fsm_vars.payloadBuff, payload, payloadSize_B);
@@ -954,4 +958,29 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	}
 	debug("FSM state transition: %#x --> %#x", dn_fsm_vars.state, newState);
 	dn_fsm_vars.state = newState;
+}
+
+static uint8_t checkPayloadLimit(uint16_t destPort)
+{
+	bool destIsF0Bx = (destPort >= WELL_KNOWN_PORT_1 && destPort <= WELL_KNOWN_PORT_8);
+	bool srcIsF0Bx = (INBOX_PORT >= WELL_KNOWN_PORT_1 && INBOX_PORT <= WELL_KNOWN_PORT_8);
+	int8_t destIsMng = memcmp(DEST_IP, DEFAULT_DEST_IP, IPv6ADDR_LEN);
+	
+	if (destIsMng == 0)
+	{
+		if (destIsF0Bx && srcIsF0Bx)
+			return PAYLOAD_SIZE_LIMIT_MNG_HIGH;
+		else if (destIsF0Bx || srcIsF0Bx)
+			return PAYLOAD_SIZE_LIMIT_MNG_MED;
+		else
+			return PAYLOAD_SIZE_LIMIT_MNG_LOW;
+	} else
+	{
+		if (destIsF0Bx && srcIsF0Bx)
+			return PAYLOAD_SIZE_LIMIT_IP_HIGH;
+		else if (destIsF0Bx || srcIsF0Bx)
+			return PAYLOAD_SIZE_LIMIT_IP_MED;
+		else
+			return PAYLOAD_SIZE_LIMIT_IP_LOW;
+	}
 }

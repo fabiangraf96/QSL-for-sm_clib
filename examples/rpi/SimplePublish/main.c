@@ -33,16 +33,16 @@ int main(int argc, char** argv)
 		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
 	};
 	uint32_t service_ms = 4000;
-	uint16_t destPort = 0xf0b8;
+	uint16_t destPort = DEFAULT_DEST_PORT;
 	bool success = FALSE;
 	uint8_t payload[2];
-	uint8_t inboxBuf[PAYLOAD_LIMIT];
+	uint8_t inboxBuf[DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t readBytes;
 	
 	log_info("Initializing...");
 	dn_qsl_init(); // Always returns TRUE atm
 
-	while (dn_qsl_connect(netID, joinKey, service_ms))
+	while (dn_qsl_connect(netID, joinKey, 0))//service_ms))
 	{
 		uint16_t val = nextValue();
 		dn_write_uint16_t(payload, val);
