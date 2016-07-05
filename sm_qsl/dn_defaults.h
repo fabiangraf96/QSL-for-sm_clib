@@ -20,7 +20,10 @@
 
 #define IPv6ADDR_LEN	16
 #define JOIN_KEY_LEN	16
+
 #define PAYLOAD_LIMIT	71 // TODO: Extend with more limits
+
+#define MIN_TX_INTERPACKET_DELAY	20
 
 #define WELL_KNOWN_PORT_1	0xf0b8
 #define WELL_KNOWN_PORT_2	0xf0b9

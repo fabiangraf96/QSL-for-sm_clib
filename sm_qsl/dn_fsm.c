@@ -190,7 +190,6 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 			dn_fsm_vars.destPort = DEFAULT_DEST_PORT;
 		} else
 		{
-			// TODO: Add check for use of reserved ports
 			dn_fsm_vars.destPort = destPort;
 		}
 		fsm_enterState(FSM_STATE_SENDING, 0);
