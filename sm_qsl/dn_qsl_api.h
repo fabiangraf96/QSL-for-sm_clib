@@ -21,6 +21,7 @@
 
 #define DEST_IP		DEFAULT_DEST_IP
 #define INBOX_PORT	DEFAULT_SRC_PORT
+#define INBOX_SIZE	10
 
 //=========================== typedef =========================================
 
@@ -36,7 +37,7 @@ bool dn_qsl_init(void);
 bool dn_qsl_isConnected(void);
 bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t service_ms);
 bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort);
-uint8_t dn_qsl_read(uint8_t* payloadBuffer);
+uint8_t dn_qsl_read(uint8_t* readBuffer);
 
 #ifdef __cplusplus
 }

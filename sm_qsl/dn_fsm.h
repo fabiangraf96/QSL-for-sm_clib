@@ -65,8 +65,8 @@
 #define FSM_RUN_INTERVAL_MS			25
 #define BACKOFF_AFTER_RESET_MS		5000
 #define BACKOFF_AFTER_DISCONNECT_MS	30000
-#define CMD_PERIOD_MS				1000	// number of ms between two commands being sent
-#define SERIAL_RESPONSE_TIMEOUT_MS	500		// max number of ms to wait for response
+#define CMD_PERIOD_MS				100 // number of ms between two commands being sent
+#define SERIAL_RESPONSE_TIMEOUT_MS	500 // max number of ms to wait for response
 #define CONNECT_TIMEOUT_S			120
 #define SEND_TIMEOUT_S				5
 

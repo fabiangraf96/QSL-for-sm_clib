@@ -15,22 +15,32 @@
 
 typedef struct
 {
+	// api
+	fsm_reply_callback replyCb;
+	fsm_timer_callback fsmCb;
 	uint8_t replyBuf[MAX_FRAME_LENGTH];
 	uint8_t notifBuf[MAX_FRAME_LENGTH];
+	// connect
 	uint8_t socketId;
 	uint16_t networkId;
 	uint8_t joinKey[JOIN_KEY_LEN];
 	uint32_t service_ms;
-	fsm_reply_callback replyCb;
-	fsm_timer_callback fsmCb;
+	// fsm
 	uint32_t fsmEventScheduled_ms;
 	uint16_t fsmDelay_ms;
 	uint32_t events;
 	uint8_t state;
+	// send
 	uint8_t payloadBuff[PAYLOAD_LIMIT];
 	uint8_t payloadSize;
 	uint8_t destIPv6[IPv6ADDR_LEN];
 	uint16_t destPort;
+	// read
+	uint8_t inboxBuf[INBOX_SIZE][PAYLOAD_LIMIT];
+	uint8_t inboxSize[INBOX_SIZE];
+	uint8_t inboxLength;
+	uint8_t inboxHead;
+	uint8_t inboxTail;
 } dn_fsm_vars_t;
 
 dn_fsm_vars_t dn_fsm_vars;
@@ -205,6 +215,28 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
+uint8_t dn_qsl_read(uint8_t* readBuffer)
+{
+	uint8_t bytesRead = 0;
+	if (dn_fsm_vars.inboxLength > 0)
+	{
+		memcpy
+				(
+				readBuffer,
+				dn_fsm_vars.inboxBuf[dn_fsm_vars.inboxHead],
+				dn_fsm_vars.inboxSize[dn_fsm_vars.inboxHead]
+				);
+		bytesRead = dn_fsm_vars.inboxSize[dn_fsm_vars.inboxHead];
+		dn_fsm_vars.inboxHead = (dn_fsm_vars.inboxHead + 1) % INBOX_SIZE;
+		dn_fsm_vars.inboxLength--;
+		debug("Read %u bytes from inbox", bytesRead);
+	} else
+	{
+		debug("Inbox empty");
+	}
+	return bytesRead;
+}
+
 void dn_fsm_run(void)
 {
 	uint32_t currentTime_ms = dn_time_ms();
@@ -242,7 +274,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 {
 	//dn_ipmt_timeIndication_nt* notif_timeIndication;
 	dn_ipmt_events_nt* notif_events;
-	//dn_ipmt_receive_nt* notif_receive;
+	dn_ipmt_receive_nt* notif_receive;
 	//dn_ipmt_macRx_nt* notif_macRx;
 	//dn_ipmt_txDone_nt* notif_txDone;
 	//dn_ipmt_advReceived_nt* notif_advReceived;
@@ -292,6 +324,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 				fsm_enterState(FSM_STATE_PRE_JOIN, 0);
 				break;
 			case FSM_STATE_CONNECTED:
+			case FSM_STATE_SENDING:
 				fsm_enterState(FSM_STATE_DISCONNECTED, 0);
 				break;
 			}
@@ -310,6 +343,25 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 
 		break;
 	case CMDID_RECEIVE:
+		notif_receive = (dn_ipmt_receive_nt*)dn_fsm_vars.notifBuf;
+		debug("Received downstream data");
+		
+		if (dn_fsm_vars.inboxLength < INBOX_SIZE)
+		{
+			memcpy
+					(
+					dn_fsm_vars.inboxBuf[dn_fsm_vars.inboxTail],
+					notif_receive->payload,
+					notif_receive->payloadLen
+					);
+			dn_fsm_vars.inboxSize[dn_fsm_vars.inboxTail] = notif_receive->payloadLen;
+			dn_fsm_vars.inboxTail = (dn_fsm_vars.inboxTail + 1) % INBOX_SIZE;
+			dn_fsm_vars.inboxLength++;
+		} else
+		{
+			log_warn("Inbox full");
+		}
+		
 		break;
 	case CMDID_MACRX:
 		break;
@@ -876,8 +928,8 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 		fsm_scheduleEvent(delay, api_requestService);
 		break;
 	case FSM_STATE_RESETTING:
-		//fsm_scheduleEvent(delay, api_reset);
-		fsm_scheduleEvent(delay, api_disconnect);
+		fsm_scheduleEvent(delay, api_reset); // Faster
+		//fsm_scheduleEvent(delay, api_disconnect); // More graceful
 		break;
 	case FSM_STATE_SENDING:
 		api_sendTo();

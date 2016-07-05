@@ -19,6 +19,7 @@
 #include "dn_time.h"
 
 static uint16_t nextValue(void);
+static void parsePayload(uint8_t *payload, uint8_t size);
 
 /*
  * 
@@ -31,10 +32,12 @@ int main(int argc, char** argv)
 		0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
 		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
 	};
-	uint32_t service_ms = 2000;
+	uint32_t service_ms = 4000;
 	uint16_t destPort = 0xf0b8;
 	bool success = FALSE;
 	uint8_t payload[2];
+	uint8_t inboxBuf[PAYLOAD_LIMIT];
+	uint8_t readBytes;
 	
 	log_info("Initializing...");
 	dn_qsl_init(); // Always returns TRUE atm
@@ -51,6 +54,13 @@ int main(int argc, char** argv)
 		{
 			log_info("Send failed");
 		}
+
+		do
+		{
+			readBytes = dn_qsl_read(inboxBuf);
+			parsePayload(inboxBuf, readBytes);
+		} while (readBytes > 0);
+
 		dn_sleep_ms(service_ms);
 	}
 
@@ -71,3 +81,23 @@ static uint16_t nextValue(void)
 	return lastValue;
 }
 
+static void parsePayload(uint8_t *payload, uint8_t size)
+{
+	uint8_t cmd;
+	uint16_t msg;
+	if (size == 0)
+	{
+		// Nothing to parse
+		return;
+	}
+	
+	cmd = payload[0];
+	if (size == 3)
+	{
+		dn_read_uint16_t(&msg, &payload[1]);
+		log_info("Received downstream data: cmd %#x, msg %#x", cmd, msg);
+	} else
+	{
+		log_warn("Received unexpected data %#x (%u)", cmd, cmd);
+	}
+}
