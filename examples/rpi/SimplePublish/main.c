@@ -18,6 +18,8 @@
 #include "dn_endianness.h"
 #include "dn_time.h"
 
+static uint16_t nextValue(void);
+
 /*
  * 
  */
@@ -29,75 +31,43 @@ int main(int argc, char** argv)
 		0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
 		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
 	};
-	uint32_t service_ms = 5000;
+	uint32_t service_ms = 2000;
 	uint16_t destPort = 0xf0b8;
-	uint16_t message = 0xabcd;
-	uint8_t payload[2];
 	bool success = FALSE;
-	dn_write_uint16_t(payload, message);
+	uint8_t payload[2];
 	
-	debug("Initializing...");
-	success = dn_qsl_init();
-	if (success)
+	log_info("Initializing...");
+	dn_qsl_init(); // Always returns TRUE atm
+
+	while (dn_qsl_connect(netID, joinKey, service_ms))
 	{
-		/*// Test default connect and sending a message
-		debug("Connecting...");
-		success = dn_qsl_connect(0, NULL, 0);
+		uint16_t val = nextValue();
+		dn_write_uint16_t(payload, val);
+		success = dn_qsl_send(payload, sizeof (val), destPort);
 		if (success)
 		{
-			log_info("Connected to network");
-			success = dn_qsl_send(payload, sizeof(message), 0);
-			if (success)
-			{
-				debug("Sent message: %#x", message);
-			} else
-			{
-				debug("Send failed");
-			}
+			log_info("Sent message: %u", val);
 		} else
 		{
-			log_info("Failed to connect");
+			log_info("Send failed");
 		}
-		*/
-		// Test connect with new netID and join Key (will fail wo second mng)
-		debug("Changing network ID and join key");
-		success = dn_qsl_connect(netID, joinKey, 0);
-		if (success)
-		{
-			log_info("Connected to network");
-		} else
-		{
-			log_info("Failed to connect");
-		}
-		
-		// Test change of service and start sending periodic messages
-		debug("Changing service");
-		success = dn_qsl_connect(0, NULL, service_ms);
-		if (success)
-		{
-			log_info("Connected to network");
-			
-			while (dn_qsl_connect(0, NULL, 0))
-			{
-				success = dn_qsl_send(payload, sizeof (message), destPort);
-				if (success)
-				{
-					debug("Sent message: %#x", message);
-				} else
-				{
-					debug("Send failed");
-				}
-				dn_sleep_ms(service_ms);
-			}
-		} else
-		{
-			log_info("Failed to connect");
-		}
-	} else
-	{
-		log_warn("Initialization failed");
+		dn_sleep_ms(service_ms);
 	}
 
 	return (EXIT_SUCCESS);
+}
+
+static uint16_t nextValue(void)
+{
+	static uint16_t lastValue = 0x7fff;
+	static bool first = TRUE;
+	int N = 9001;
+	if (first)
+	{
+		first = FALSE;
+		srand(dn_time_ms());
+	}
+	lastValue += rand() / (RAND_MAX / N + 1) - N/2;
+	return lastValue;
 }
 
