@@ -50,9 +50,11 @@ dn_fsm_vars_t dn_fsm_vars;
 
 void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
 void dn_ipmt_reply_cb(uint8_t cmdId);
+void fsm_run(void);
 void fsm_scheduleEvent(uint16_t delay, fsm_timer_callback cb);
 void fsm_cancelEvent(void);
 void fsm_setReplyCallback(fsm_reply_callback cb);
+
 void api_response_timeout(void);
 void api_reset(void);
 void api_reset_reply(void);
@@ -98,6 +100,11 @@ bool dn_qsl_init(void)
 
 	fsm_enterState(FSM_STATE_DISCONNECTED, 0);
 	return TRUE;
+}
+
+bool dn_qsl_isConnected(void)
+{
+	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
 bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
@@ -157,7 +164,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 			return FALSE;
 		} else
 		{
-			dn_fsm_run();
+			fsm_run();
 			dn_sleep_ms(FSM_RUN_INTERVAL_MS);
 		}
 	}
@@ -203,7 +210,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 			return FALSE;
 		} else
 		{
-			dn_fsm_run();
+			fsm_run();
 			dn_sleep_ms(FSM_RUN_INTERVAL_MS);
 		}
 	}
@@ -237,7 +244,11 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 	return bytesRead;
 }
 
-void dn_fsm_run(void)
+//=========================== private =========================================
+
+//=== FSM ===
+
+void fsm_run(void)
 {
 	uint32_t currentTime_ms = dn_time_ms();
 	if (dn_fsm_vars.fsmDelay_ms > 0 && (currentTime_ms - dn_fsm_vars.fsmEventScheduled_ms > dn_fsm_vars.fsmDelay_ms))
@@ -249,8 +260,6 @@ void dn_fsm_run(void)
 		}
 	}
 }
-
-//=========================== private =========================================
 
 void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
 {
@@ -269,6 +278,8 @@ void fsm_setReplyCallback(fsm_reply_callback cb)
 {
 	dn_fsm_vars.replyCb = cb;
 }
+
+//=== C Library API ===
 
 void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 {

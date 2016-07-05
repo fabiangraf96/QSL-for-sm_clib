@@ -95,9 +95,6 @@ extern "C"
 {
 #endif
 
-void dn_fsm_run(void);
-
-
 #ifdef __cplusplus
 }
 #endif
