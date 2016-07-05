@@ -419,7 +419,7 @@ void api_disconnect_reply(void)
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
 		break;
 	}
 }
