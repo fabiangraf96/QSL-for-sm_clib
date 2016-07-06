@@ -42,7 +42,6 @@ void dn_sleep_ms(uint32_t milliseconds)
 	{
 		if (errno == EINTR)
 		{
-			debug("Sleep interrupted");
 			continue;
 		} else
 		{

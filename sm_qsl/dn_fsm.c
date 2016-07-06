@@ -47,46 +47,47 @@ dn_fsm_vars_t dn_fsm_vars;
 
 
 //=========================== prototypes ======================================
-
+// fsm
+static void fsm_run(void);
+static void fsm_scheduleEvent(uint16_t delay, fsm_timer_callback cb);
+static void fsm_cancelEvent(void);
+static void fsm_setReplyCallback(fsm_reply_callback cb);
+static void fsm_enterState(uint8_t newState, uint16_t spesificDelay);
+// api
 void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
 void dn_ipmt_reply_cb(uint8_t cmdId);
-void fsm_run(void);
-void fsm_scheduleEvent(uint16_t delay, fsm_timer_callback cb);
-void fsm_cancelEvent(void);
-void fsm_setReplyCallback(fsm_reply_callback cb);
-
-void api_response_timeout(void);
-void api_reset(void);
-void api_reset_reply(void);
-void api_disconnect(void);
-void api_disconnect_reply(void);
-void api_getMoteStatus(void);
-void api_getMoteStatus_reply(void);
-void api_openSocket(void);
-void api_openSocket_reply(void);
-void api_bindSocket(void);
-void api_bindSocket_reply(void);
-void api_setJoinKey(void);
-void api_setJoinKey_reply(void);
-void api_setNetworkId(void);
-void api_setNetworkId_reply(void);
-void api_join(void);
-void api_join_reply(void);
-void api_requestService(void);
-void api_requestService_reply(void);
-void api_getServiceInfo(void);
-void api_getServiceInfo_reply(void);
-void api_sendTo(void);
-void api_sendTo_reply(void);
-
+static void api_response_timeout(void);
+static void api_reset(void);
+static void api_reset_reply(void);
+static void api_disconnect(void);
+static void api_disconnect_reply(void);
+static void api_getMoteStatus(void);
+static void api_getMoteStatus_reply(void);
+static void api_openSocket(void);
+static void api_openSocket_reply(void);
+static void api_bindSocket(void);
+static void api_bindSocket_reply(void);
+static void api_setJoinKey(void);
+static void api_setJoinKey_reply(void);
+static void api_setNetworkId(void);
+static void api_setNetworkId_reply(void);
+static void api_join(void);
+static void api_join_reply(void);
+static void api_requestService(void);
+static void api_requestService_reply(void);
+static void api_getServiceInfo(void);
+static void api_getServiceInfo_reply(void);
+static void api_sendTo(void);
+static void api_sendTo_reply(void);
+// helpers
 static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms);
-static void fsm_enterState(uint8_t newState, uint16_t spesificDelay);
 static uint8_t checkPayloadLimit(uint16_t destPort);
 
 //=========================== public ==========================================
 
 bool dn_qsl_init(void)
 {
+	debug("QSL: Init");
 	// Reset local variables
 	memset(&dn_fsm_vars, 0, sizeof (dn_fsm_vars));
 
@@ -105,6 +106,7 @@ bool dn_qsl_init(void)
 
 bool dn_qsl_isConnected(void)
 {
+	debug("QSL: isConnected");
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
@@ -112,13 +114,13 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
 	dn_err_t err;
+	debug("QSL: Connect");
 	switch (dn_fsm_vars.state)
 	{
 	case FSM_STATE_NOT_INITIALIZED:
-		log_warn("dn_qsl_connect run without being initialized");
+		log_warn("Can't connect; not initialized");
 		return FALSE;
 	case FSM_STATE_DISCONNECTED:
-		debug("dn_qsl_connect while DISCONNECTED");
 		err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
 		if (err != DN_ERR_NONE)
 		{
@@ -127,7 +129,6 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
 		break;
 	case FSM_STATE_CONNECTED:
-		debug("dn_qsl_connect while CONNECTED");
 		if ((netID > 0 && netID != dn_fsm_vars.networkId) ||
 				(joinKey != NULL && memcmp(joinKey, dn_fsm_vars.joinKey, JOIN_KEY_LEN) != 0))
 		{
@@ -150,7 +151,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		break;
 	default:
 		log_err("Undefined state");
-		dn_fsm_vars.state = FSM_STATE_DISCONNECTED;
+		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
 		return FALSE;
 	}
 
@@ -176,6 +177,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
 	uint8_t maxPayloadSize;
+	debug("QSL: Send");
 	switch (dn_fsm_vars.state)
 	{
 	case FSM_STATE_CONNECTED:
@@ -199,6 +201,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 		fsm_enterState(FSM_STATE_SENDING, 0);
 		break;
 	default:
+		log_warn("Can't send; not connected");
 		return FALSE;
 	}
 
@@ -217,9 +220,11 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 			dn_sleep_ms(FSM_RUN_INTERVAL_MS);
 		}
 	}
+
 	if (dn_fsm_vars.state == FSM_STATE_SEND_FAILED)
 	{
 		fsm_enterState(FSM_STATE_CONNECTED, 0);
+		debug("Send failed");
 		return FALSE;
 	}
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
@@ -228,6 +233,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 uint8_t dn_qsl_read(uint8_t* readBuffer)
 {
 	uint8_t bytesRead = 0;
+	debug("QSL: Read");
 	if (dn_fsm_vars.inboxLength > 0)
 	{
 		memcpy
@@ -251,7 +257,7 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 
 //=== FSM ===
 
-void fsm_run(void)
+static void fsm_run(void)
 {
 	uint32_t currentTime_ms = dn_time_ms();
 	if (dn_fsm_vars.fsmDelay_ms > 0 && (currentTime_ms - dn_fsm_vars.fsmEventScheduled_ms > dn_fsm_vars.fsmDelay_ms))
@@ -264,22 +270,66 @@ void fsm_run(void)
 	}
 }
 
-void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
+static void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
 {
 	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms(); // TODO: Move to each cmd
 	dn_fsm_vars.fsmDelay_ms = delay_ms;
 	dn_fsm_vars.fsmCb = cb;
 }
 
-void fsm_cancelEvent(void)
+static void fsm_cancelEvent(void)
 {
 	dn_fsm_vars.fsmDelay_ms = 0;
 	dn_fsm_vars.fsmCb = NULL;
 }
 
-void fsm_setReplyCallback(fsm_reply_callback cb)
+static void fsm_setReplyCallback(fsm_reply_callback cb)
 {
 	dn_fsm_vars.replyCb = cb;
+}
+
+static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
+{
+	static uint32_t lastTransition = 0;
+	if (lastTransition == 0)
+		lastTransition = dn_time_ms();
+	uint32_t now = dn_time_ms();
+	uint16_t delay = CMD_PERIOD_MS;
+	if (spesificDelay > 0)
+	{
+		delay = spesificDelay;
+	}
+	
+	switch(newState)
+	{
+	case FSM_STATE_PRE_JOIN:
+		fsm_scheduleEvent(delay, api_getMoteStatus);
+		break;
+	case FSM_STATE_JOINING:
+		fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
+		break;
+	case FSM_STATE_REQ_SERVICE:
+		fsm_scheduleEvent(delay, api_requestService);
+		break;
+	case FSM_STATE_RESETTING:
+		fsm_scheduleEvent(delay, api_reset); // Faster
+		//fsm_scheduleEvent(delay, api_disconnect); // More graceful
+		break;
+	case FSM_STATE_SENDING:
+		api_sendTo();
+		break;
+	case FSM_STATE_SEND_FAILED:
+	case FSM_STATE_DISCONNECTED:
+	case FSM_STATE_CONNECTED:
+		break;
+	default:
+		log_warn("Attempt at entering unexpected state %u", newState);
+		return;
+	}
+	debug("FSM state transition: %#x --> %#x (%u ms)",
+			dn_fsm_vars.state, newState, now - lastTransition);
+	lastTransition = now;
+	dn_fsm_vars.state = newState;
 }
 
 //=== C Library API ===
@@ -403,7 +453,7 @@ void dn_ipmt_reply_cb(uint8_t cmdId)
 	dn_fsm_vars.replyCb();
 }
 
-void api_response_timeout(void)
+static void api_response_timeout(void)
 {
 	debug("Response timeout");
 	dn_ipmt_cancelTx();
@@ -420,7 +470,7 @@ void api_response_timeout(void)
 	}
 }
 
-void api_reset(void)
+static void api_reset(void)
 {
 	debug("Reset");
 
@@ -434,7 +484,7 @@ void api_reset(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_reset_reply(void)
+static void api_reset_reply(void)
 {
 	dn_ipmt_reset_rpt* reply;
 	debug("Reset reply");
@@ -455,7 +505,7 @@ void api_reset_reply(void)
 	}
 }
 
-void api_disconnect(void)
+static void api_disconnect(void)
 {
 	debug("Disconnect");
 	
@@ -469,7 +519,7 @@ void api_disconnect(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_disconnect_reply(void)
+static void api_disconnect_reply(void)
 {
 	dn_ipmt_disconnect_rpt* reply;
 	debug("Disconnect reply");
@@ -490,7 +540,7 @@ void api_disconnect_reply(void)
 	}
 }
 
-void api_getMoteStatus(void)
+static void api_getMoteStatus(void)
 {
 	debug("Mote status");
 	// arm callback
@@ -505,7 +555,7 @@ void api_getMoteStatus(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_getMoteStatus_reply(void)
+static void api_getMoteStatus_reply(void)
 {
 	dn_ipmt_getParameter_moteStatus_rpt* reply;
 	debug("Mote status reply");
@@ -532,7 +582,7 @@ void api_getMoteStatus_reply(void)
 	}
 }
 
-void api_openSocket(void)
+static void api_openSocket(void)
 {
 	debug("Open socket");
 	// arm callback
@@ -548,7 +598,7 @@ void api_openSocket(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_openSocket_reply(void)
+static void api_openSocket_reply(void)
 {
 	dn_ipmt_openSocket_rpt* reply;
 	debug("Open socket reply");
@@ -577,7 +627,7 @@ void api_openSocket_reply(void)
 	}
 }
 
-void api_bindSocket(void)
+static void api_bindSocket(void)
 {
 	debug("Bind socket");
 	// arm callback
@@ -594,7 +644,7 @@ void api_bindSocket(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_bindSocket_reply(void)
+static void api_bindSocket_reply(void)
 {
 	dn_ipmt_bindSocket_rpt* reply;
 	debug("Bind socket reply");
@@ -624,7 +674,7 @@ void api_bindSocket_reply(void)
 	}
 }
 
-void api_setJoinKey(void)
+static void api_setJoinKey(void)
 {
 	debug("Set join key");
 
@@ -639,7 +689,7 @@ void api_setJoinKey(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_setJoinKey_reply(void)
+static void api_setJoinKey_reply(void)
 {
 	dn_ipmt_setParameter_joinKey_rpt* reply;
 	debug("Set join key reply");
@@ -664,7 +714,7 @@ void api_setJoinKey_reply(void)
 	}
 }
 
-void api_setNetworkId(void)
+static void api_setNetworkId(void)
 {
 	debug("Set network ID");
 
@@ -679,7 +729,7 @@ void api_setNetworkId(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_setNetworkId_reply(void)
+static void api_setNetworkId_reply(void)
 {
 	dn_ipmt_setParameter_networkId_rpt* reply;
 	debug("Set network ID reply");
@@ -704,7 +754,7 @@ void api_setNetworkId_reply(void)
 	}
 }
 
-void api_join(void)
+static void api_join(void)
 {
 	debug("Join");
 	// arm callback
@@ -719,7 +769,7 @@ void api_join(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_join_reply(void)
+static void api_join_reply(void)
 {
 	dn_ipmt_join_rpt* reply;
 	debug("Join reply");
@@ -748,7 +798,7 @@ void api_join_reply(void)
 	}
 }
 
-void api_requestService(void)
+static void api_requestService(void)
 {
 	debug("Request service");
 
@@ -765,7 +815,7 @@ void api_requestService(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_requestService_reply(void)
+static void api_requestService_reply(void)
 {
 	dn_ipmt_requestService_rpt* reply;
 	debug("Request service reply");
@@ -786,7 +836,7 @@ void api_requestService_reply(void)
 	}
 }
 
-void api_getServiceInfo(void)
+static void api_getServiceInfo(void)
 {
 	debug("Get service info");
 
@@ -802,7 +852,7 @@ void api_getServiceInfo(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_getServiceInfo_reply(void)
+static void api_getServiceInfo_reply(void)
 {
 	dn_ipmt_getServiceInfo_rpt* reply;
 	debug("Get service info reply");
@@ -837,7 +887,7 @@ void api_getServiceInfo_reply(void)
 	}
 }
 
-void api_sendTo(void)
+static void api_sendTo(void)
 {
 	dn_err_t err;
 	debug("Send");
@@ -866,7 +916,7 @@ void api_sendTo(void)
 	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
 }
 
-void api_sendTo_reply(void)
+static void api_sendTo_reply(void)
 {
 	dn_ipmt_sendTo_rpt* reply;
 	debug("Send reply");
@@ -879,7 +929,7 @@ void api_sendTo_reply(void)
 	{
 	case RC_OK:
 		debug("Packet was queued up for transmission");
-		dn_fsm_vars.state = FSM_STATE_CONNECTED;
+		fsm_enterState(FSM_STATE_CONNECTED, 0);
 		break;
 	case RC_NO_RESOURCES:
 		debug("No queue space to accept the packet");
@@ -921,43 +971,6 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t
 	dn_fsm_vars.service_ms = req_service_ms;
 	
 	return DN_ERR_NONE;
-}
-
-static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
-{
-	uint16_t delay = CMD_PERIOD_MS;
-	if (spesificDelay > 0)
-	{
-		delay = spesificDelay;
-	}
-	switch(newState)
-	{
-	case FSM_STATE_PRE_JOIN:
-		fsm_scheduleEvent(delay, api_getMoteStatus);
-		break;
-	case FSM_STATE_JOINING:
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
-		break;
-	case FSM_STATE_REQ_SERVICE:
-		fsm_scheduleEvent(delay, api_requestService);
-		break;
-	case FSM_STATE_RESETTING:
-		fsm_scheduleEvent(delay, api_reset); // Faster
-		//fsm_scheduleEvent(delay, api_disconnect); // More graceful
-		break;
-	case FSM_STATE_SENDING:
-		api_sendTo();
-		break;
-	case FSM_STATE_SEND_FAILED:
-	case FSM_STATE_DISCONNECTED:
-	case FSM_STATE_CONNECTED:
-		break;
-	default:
-		log_warn("Attempt at entering unexpected state %u", newState);
-		return;
-	}
-	debug("FSM state transition: %#x --> %#x", dn_fsm_vars.state, newState);
-	dn_fsm_vars.state = newState;
 }
 
 static uint8_t checkPayloadLimit(uint16_t destPort)
