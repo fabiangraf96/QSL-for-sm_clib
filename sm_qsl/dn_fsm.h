@@ -69,7 +69,7 @@
 #define CMD_PERIOD_MS				MIN_TX_INTERPACKET_DELAY + 10
 #define SERIAL_RESPONSE_TIMEOUT_MS	500
 #define CONNECT_TIMEOUT_S			120
-#define SEND_TIMEOUT_S				5
+#define SEND_TIMEOUT_MS				1000
 
 #define SERVICE_TYPE_BW		0x00
 #define SERVICE_ADDRESS		0xFFFE // Manager (only value currently supported)

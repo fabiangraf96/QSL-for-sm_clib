@@ -53,6 +53,7 @@ static void fsm_scheduleEvent(uint16_t delay, fsm_timer_callback cb);
 static void fsm_cancelEvent(void);
 static void fsm_setReplyCallback(fsm_reply_callback cb);
 static void fsm_enterState(uint8_t newState, uint16_t spesificDelay);
+static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms);
 // api
 void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
 void dn_ipmt_reply_cb(uint8_t cmdId);
@@ -119,6 +120,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 	{
 	case FSM_STATE_NOT_INITIALIZED:
 		log_warn("Can't connect; not initialized");
+		// TODO: Could initialize for user?
 		return FALSE;
 	case FSM_STATE_DISCONNECTED:
 		err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
@@ -147,6 +149,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		} else
 		{
 			debug("Already connected");
+			// Nothing to do
 		}
 		break;
 	default:
@@ -154,22 +157,15 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
 		return FALSE;
 	}
-
-	while (dn_fsm_vars.state != FSM_STATE_CONNECTED && dn_fsm_vars.state != FSM_STATE_DISCONNECTED)
+	
+	// Drive FSM until connect success/failure or timeout
+	while (dn_fsm_vars.state != FSM_STATE_CONNECTED
+			&& dn_fsm_vars.state != FSM_STATE_DISCONNECTED
+			&& !fsm_cmd_timeout(cmdStart_ms, CONNECT_TIMEOUT_S * 1000))
 	{
-		if ((dn_time_ms() - cmdStart_ms) > CONNECT_TIMEOUT_S * 1000)
-		{
-			debug("Connect timeout");
-			fsm_enterState(FSM_STATE_DISCONNECTED, 0);
-			dn_fsm_vars.replyCb = NULL;
-			fsm_cancelEvent();
-			return FALSE;
-		} else
-		{
-			fsm_run();
-			dn_sleep_ms(FSM_RUN_INTERVAL_MS);
-		}
+		fsm_run();
 	}
+	
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
@@ -205,28 +201,21 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 		return FALSE;
 	}
 
-	while (dn_fsm_vars.state == FSM_STATE_SENDING)
+	// Drive FSM until send success/failure or timeout
+	while (dn_fsm_vars.state == FSM_STATE_SENDING
+			&& !fsm_cmd_timeout(cmdStart_ms, SEND_TIMEOUT_MS))
 	{
-		if ((dn_time_ms() - cmdStart_ms) > SEND_TIMEOUT_S * 1000)
-		{
-			debug("Send timeout");
-			fsm_enterState(FSM_STATE_CONNECTED, 0);
-			dn_fsm_vars.replyCb = NULL;
-			fsm_cancelEvent();
-			return FALSE;
-		} else
-		{
-			fsm_run();
-			dn_sleep_ms(FSM_RUN_INTERVAL_MS);
-		}
+		fsm_run();
 	}
 
+	// Catch send failure
 	if (dn_fsm_vars.state == FSM_STATE_SEND_FAILED)
 	{
-		fsm_enterState(FSM_STATE_CONNECTED, 0);
 		debug("Send failed");
+		fsm_enterState(FSM_STATE_CONNECTED, 0);
 		return FALSE;
 	}
+	
 	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
 }
 
@@ -267,6 +256,9 @@ static void fsm_run(void)
 		{
 			dn_fsm_vars.fsmCb();
 		}
+	} else
+	{
+		dn_sleep_ms(FSM_RUN_INTERVAL_MS); // Sleep to save CPU power
 	}
 }
 
@@ -330,6 +322,37 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 			dn_fsm_vars.state, newState, now - lastTransition);
 	lastTransition = now;
 	dn_fsm_vars.state = newState;
+}
+
+static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
+{
+	bool timeout = (dn_time_ms() - cmdStart_ms) > cmdTimeout_ms;
+	if (timeout)
+	{
+		dn_ipmt_cancelTx();
+		dn_fsm_vars.replyCb = NULL;
+		fsm_cancelEvent();
+		
+		switch (dn_fsm_vars.state)
+		{
+		case FSM_STATE_PRE_JOIN:
+		case FSM_STATE_JOINING:
+		case FSM_STATE_REQ_SERVICE:
+		case FSM_STATE_RESETTING:
+			debug("Connect timeout");
+			fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+			break;
+		case FSM_STATE_SENDING:
+		case FSM_STATE_SEND_FAILED:
+			debug("Send timeout");
+			fsm_enterState(FSM_STATE_SEND_FAILED, 0);
+			break;
+		default:
+			log_err("Command timeout in unexpected state");
+			break;
+		}
+	}
+	return timeout;
 }
 
 //=== C Library API ===
