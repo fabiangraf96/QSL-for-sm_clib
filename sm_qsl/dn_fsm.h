@@ -16,6 +16,7 @@
 
 #include "dn_common.h"
 #include "dn_defaults.h"
+#include "dn_qsl_api.h"
 
 //=========================== defines =========================================
 
@@ -90,6 +91,14 @@
 typedef void (*fsm_timer_callback)(void);
 typedef void (*fsm_reply_callback)(void);
 
+typedef struct
+{
+	uint8_t pktBuf[INBOX_SIZE][DEFAULT_PAYLOAD_SIZE_LIMIT];
+	uint8_t pktSize[INBOX_SIZE];
+	uint8_t head;
+	uint8_t tail;
+	uint8_t unreadPackets;
+} dn_inbox_t;
 
 //=========================== variables =======================================
 

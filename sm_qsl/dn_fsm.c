@@ -15,31 +15,25 @@
 
 typedef struct
 {
-	// api
+	// FSM
+	uint32_t fsmEventScheduled_ms;
+	uint16_t fsmDelay_ms;
+	uint8_t state;
+	// C Library API
 	fsm_reply_callback replyCb;
 	fsm_timer_callback fsmCb;
 	uint8_t replyBuf[MAX_FRAME_LENGTH];
 	uint8_t notifBuf[MAX_FRAME_LENGTH];
-	// connect
+	// Connection
 	uint8_t socketId;
 	uint16_t networkId;
 	uint8_t joinKey[JOIN_KEY_LEN];
 	uint32_t service_ms;
-	// fsm
-	uint32_t fsmEventScheduled_ms;
-	uint16_t fsmDelay_ms;
-	uint8_t state;
-	// send
-	uint8_t payloadBuff[DEFAULT_PAYLOAD_SIZE_LIMIT];
+	uint8_t payloadBuf[DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t payloadSize;
 	uint8_t destIPv6[IPv6ADDR_LEN];
 	uint16_t destPort;
-	// read
-	uint8_t inboxBuf[INBOX_SIZE][DEFAULT_PAYLOAD_SIZE_LIMIT];
-	uint8_t inboxSize[INBOX_SIZE];
-	uint8_t inboxLength;
-	uint8_t inboxHead;
-	uint8_t inboxTail;
+	dn_inbox_t inbox;
 } dn_fsm_vars_t;
 
 static dn_fsm_vars_t dn_fsm_vars;
@@ -187,7 +181,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 			return FALSE;
 		}
 		// Store outbound payload and parameters
-		memcpy(dn_fsm_vars.payloadBuff, payload, payloadSize_B);
+		memcpy(dn_fsm_vars.payloadBuf, payload, payloadSize_B);
 		dn_fsm_vars.payloadSize = payloadSize_B;
 		memcpy(dn_fsm_vars.destIPv6, DEST_IP, IPv6ADDR_LEN);
 		dn_fsm_vars.destPort = (destPort > 0) ? destPort : DEFAULT_DEST_PORT;
@@ -221,18 +215,18 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 {
 	uint8_t bytesRead = 0;
 	debug("QSL: Read");
-	if (dn_fsm_vars.inboxLength > 0)
+	if (dn_fsm_vars.inbox.unreadPackets > 0)
 	{
 		// Pop payload at head of inbox
 		memcpy
 				(
 				readBuffer,
-				dn_fsm_vars.inboxBuf[dn_fsm_vars.inboxHead],
-				dn_fsm_vars.inboxSize[dn_fsm_vars.inboxHead]
+				dn_fsm_vars.inbox.pktBuf[dn_fsm_vars.inbox.head],
+				dn_fsm_vars.inbox.pktSize[dn_fsm_vars.inbox.head]
 				);
-		bytesRead = dn_fsm_vars.inboxSize[dn_fsm_vars.inboxHead];
-		dn_fsm_vars.inboxHead = (dn_fsm_vars.inboxHead + 1) % INBOX_SIZE;
-		dn_fsm_vars.inboxLength--;
+		bytesRead = dn_fsm_vars.inbox.pktSize[dn_fsm_vars.inbox.head];
+		dn_fsm_vars.inbox.head = (dn_fsm_vars.inbox.head + 1) % INBOX_SIZE;
+		dn_fsm_vars.inbox.unreadPackets--;
 		debug("Read %u bytes from inbox", bytesRead);
 	} else
 	{
@@ -444,18 +438,18 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		notif_receive = (dn_ipmt_receive_nt*)dn_fsm_vars.notifBuf;
 		debug("Received downstream data");
 
-		if (dn_fsm_vars.inboxLength < INBOX_SIZE)
+		if (dn_fsm_vars.inbox.unreadPackets < INBOX_SIZE)
 		{
 			// Push payload at tail of inbox
 			memcpy
 					(
-					dn_fsm_vars.inboxBuf[dn_fsm_vars.inboxTail],
+					dn_fsm_vars.inbox.pktBuf[dn_fsm_vars.inbox.tail],
 					notif_receive->payload,
 					notif_receive->payloadLen
 					);
-			dn_fsm_vars.inboxSize[dn_fsm_vars.inboxTail] = notif_receive->payloadLen;
-			dn_fsm_vars.inboxTail = (dn_fsm_vars.inboxTail + 1) % INBOX_SIZE;
-			dn_fsm_vars.inboxLength++;
+			dn_fsm_vars.inbox.pktSize[dn_fsm_vars.inbox.tail] = notif_receive->payloadLen;
+			dn_fsm_vars.inbox.tail = (dn_fsm_vars.inbox.tail + 1) % INBOX_SIZE;
+			dn_fsm_vars.inbox.unreadPackets++;
 		} else
 		{
 			log_warn("Inbox overflow");
@@ -1007,7 +1001,7 @@ static void api_sendTo(void)
 			SERVICE_TYPE_BW,
 			PACKET_PRIORITY_MEDIUM,
 			PACKET_ID_NO_NOTIF,
-			dn_fsm_vars.payloadBuff,
+			dn_fsm_vars.payloadBuf,
 			dn_fsm_vars.payloadSize,
 			(dn_ipmt_sendTo_rpt*)dn_fsm_vars.replyBuf
 			);
