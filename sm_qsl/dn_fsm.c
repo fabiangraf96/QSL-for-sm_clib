@@ -40,14 +40,14 @@ static dn_fsm_vars_t dn_fsm_vars;
 
 
 //=========================== prototypes ======================================
-// fsm
+// FSM
 static void fsm_run(void);
 static void fsm_scheduleEvent(uint16_t delay, fsm_timer_callback cb);
 static void fsm_cancelEvent(void);
 static void fsm_setReplyCallback(fsm_reply_callback cb);
 static void fsm_enterState(uint8_t newState, uint16_t spesificDelay);
 static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms);
-// api
+// C Library API
 static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
 static void dn_ipmt_reply_cb(uint8_t cmdId);
 static void api_response_timeout(void); // TODO: Better prefix?

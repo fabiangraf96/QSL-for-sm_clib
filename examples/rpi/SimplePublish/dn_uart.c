@@ -4,9 +4,9 @@
  * and open the template in the editor.
  */
 
-#include <unistd.h>		//Used for UART
-#include <fcntl.h>		//Used for UART
-#include <termios.h>	//Used for UART
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -34,12 +34,15 @@ static void* dn_uart_read_daemon(void* arg);
 
 void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 {
-	char *portname = "/dev/ttyUSB0";
+	char *portname = "/dev/ttyUSB0"; // External USB UART
+	//char *portname = "/dev/ttyAMA0"; // On-board UART
 	struct termios options;
 	int32_t rc;
 	
+	// Store byte received callback
 	dn_uart_vars.ipmt_uart_rxByte_cb = rxByte_cb;
 	
+	// Open and store UART file descriptor
 	dn_uart_vars.uart_fd = -1;
 	dn_uart_vars.uart_fd = open(portname, O_RDWR | O_NOCTTY);
 	if (dn_uart_vars.uart_fd == -1)
@@ -50,14 +53,23 @@ void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 		debug("UART opened");
 	}
 
+	// Get current options and configure flags below
 	tcgetattr(dn_uart_vars.uart_fd, &options);
+	
+	// Control flags: 115.2K baud | 8 bit char size mask | Ignore modem control lines | Enable receiver
 	options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
+	// Input flags: Ignore framing errors and parity errors
 	options.c_iflag = IGNPAR;
+	// Output flags: None
 	options.c_oflag = 0;
+	// Local flags: None
 	options.c_lflag = 0;
+	
+	// Discard any data written and set new options
 	tcflush(dn_uart_vars.uart_fd, TCIFLUSH);
 	tcsetattr(dn_uart_vars.uart_fd, TCSANOW, &options);
 	
+	// Start read deamon to listen for UART RX
 	rc = pthread_create(&dn_uart_vars.read_daemon, NULL, dn_uart_read_daemon, NULL);
 	if (rc != 0)
 	{
@@ -116,7 +128,7 @@ static void* dn_uart_read_daemon(void* arg)
 		// Add socket to set
 		FD_ZERO(&set);
 		FD_SET(dn_uart_vars.uart_fd, &set);
-		// Set select timeout to 0.5 seconds
+		// Set select timeout to 0.5 seconds (TODO: Any reason not to set higher?)
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 500000;
 		rc = select(dn_uart_vars.uart_fd + 1, &set, NULL, NULL, &timeout);
@@ -135,6 +147,7 @@ static void* dn_uart_read_daemon(void* arg)
 				debug("Received %d bytes", rxBytes);
 				for (n = 0; n < rxBytes; n++)
 				{
+					// Push individual byte to HDLC layer
 					dn_uart_vars.ipmt_uart_rxByte_cb(rxBuff[n]);
 				}
 			}
