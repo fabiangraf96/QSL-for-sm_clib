@@ -42,7 +42,7 @@ typedef struct
 	uint8_t inboxTail;
 } dn_fsm_vars_t;
 
-dn_fsm_vars_t dn_fsm_vars;
+static dn_fsm_vars_t dn_fsm_vars;
 
 
 //=========================== prototypes ======================================
@@ -54,8 +54,8 @@ static void fsm_setReplyCallback(fsm_reply_callback cb);
 static void fsm_enterState(uint8_t newState, uint16_t spesificDelay);
 static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms);
 // api
-void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
-void dn_ipmt_reply_cb(uint8_t cmdId);
+static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
+static void dn_ipmt_reply_cb(uint8_t cmdId);
 static void api_response_timeout(void); // TODO: Better prefix?
 static void api_reset(void);
 static void api_reset_reply(void);
@@ -360,7 +360,7 @@ static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
 
 //=== C Library API ===
 
-void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
+static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 {
 	//dn_ipmt_timeIndication_nt* notif_timeIndication;
 	dn_ipmt_events_nt* notif_events;
@@ -476,7 +476,7 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	}
 }
 
-void dn_ipmt_reply_cb(uint8_t cmdId)
+static void dn_ipmt_reply_cb(uint8_t cmdId)
 {
 	debug("Got reply: cmdId; %#x (%u)", cmdId, cmdId);
 	if (dn_fsm_vars.replyCb == NULL)

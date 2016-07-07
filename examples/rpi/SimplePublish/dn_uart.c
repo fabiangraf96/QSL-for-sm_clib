@@ -22,7 +22,7 @@ typedef struct {
 	pthread_t				read_daemon;
 } dn_uart_vars_t;
 
-dn_uart_vars_t dn_uart_vars;
+static dn_uart_vars_t dn_uart_vars;
 
 
 //=========================== prototypes ======================================
