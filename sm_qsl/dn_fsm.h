@@ -71,6 +71,8 @@
 #define CONNECT_TIMEOUT_S			120
 #define SEND_TIMEOUT_MS				1000
 
+#define PROTOCOL_TYPE_UDP	0x00
+
 #define SERVICE_TYPE_BW		0x00
 #define SERVICE_ADDRESS		0xFFFE // Manager (only value currently supported)
 
@@ -80,6 +82,8 @@
 #define PACKET_PRIORITY_LOW		0x00
 #define PACKET_PRIORITY_MEDIUM	0x01
 #define PACKET_PRIORITY_HIGH	0x02
+
+#define PACKET_ID_NO_NOTIF	0xffff
 
 //=========================== typedef =========================================
 
