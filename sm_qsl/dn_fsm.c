@@ -57,7 +57,7 @@ static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms);
 // api
 void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
 void dn_ipmt_reply_cb(uint8_t cmdId);
-static void api_response_timeout(void);
+static void api_response_timeout(void); // TODO: Better prefix?
 static void api_reset(void);
 static void api_reset_reply(void);
 static void api_disconnect(void);
@@ -225,19 +225,20 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 	debug("QSL: Read");
 	if (dn_fsm_vars.inboxLength > 0)
 	{
-		memcpy
-				(
-				readBuffer,
-				dn_fsm_vars.inboxBuf[dn_fsm_vars.inboxHead],
-				dn_fsm_vars.inboxSize[dn_fsm_vars.inboxHead]
-				);
-		bytesRead = dn_fsm_vars.inboxSize[dn_fsm_vars.inboxHead];
-		dn_fsm_vars.inboxHead = (dn_fsm_vars.inboxHead + 1) % INBOX_SIZE;
-		dn_fsm_vars.inboxLength--;
-		debug("Read %u bytes from inbox", bytesRead);
+            // Pop payload at head of inbox
+            memcpy
+                            (
+                            readBuffer,
+                            dn_fsm_vars.inboxBuf[dn_fsm_vars.inboxHead],
+                            dn_fsm_vars.inboxSize[dn_fsm_vars.inboxHead]
+                            );
+            bytesRead = dn_fsm_vars.inboxSize[dn_fsm_vars.inboxHead];
+            dn_fsm_vars.inboxHead = (dn_fsm_vars.inboxHead + 1) % INBOX_SIZE;
+            dn_fsm_vars.inboxLength--;
+            debug("Read %u bytes from inbox", bytesRead);
 	} else
 	{
-		debug("Inbox empty");
+            debug("Inbox empty");
 	}
 	return bytesRead;
 }
@@ -435,18 +436,19 @@ void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		
 		if (dn_fsm_vars.inboxLength < INBOX_SIZE)
 		{
-			memcpy
-					(
-					dn_fsm_vars.inboxBuf[dn_fsm_vars.inboxTail],
-					notif_receive->payload,
-					notif_receive->payloadLen
-					);
-			dn_fsm_vars.inboxSize[dn_fsm_vars.inboxTail] = notif_receive->payloadLen;
-			dn_fsm_vars.inboxTail = (dn_fsm_vars.inboxTail + 1) % INBOX_SIZE;
-			dn_fsm_vars.inboxLength++;
+                    // Push payload at tail of inbox
+                    memcpy
+                                    (
+                                    dn_fsm_vars.inboxBuf[dn_fsm_vars.inboxTail],
+                                    notif_receive->payload,
+                                    notif_receive->payloadLen
+                                    );
+                    dn_fsm_vars.inboxSize[dn_fsm_vars.inboxTail] = notif_receive->payloadLen;
+                    dn_fsm_vars.inboxTail = (dn_fsm_vars.inboxTail + 1) % INBOX_SIZE;
+                    dn_fsm_vars.inboxLength++;
 		} else
 		{
-			log_warn("Inbox full");
+                    log_warn("Inbox overflow");
 		}
 		
 		break;
