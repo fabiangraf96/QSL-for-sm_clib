@@ -57,29 +57,29 @@ static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms);
 // C Library API
 static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
 static void dn_ipmt_reply_cb(uint8_t cmdId);
-static void api_response_timeout(void); // TODO: Better prefix?
-static void api_reset(void);
-static void api_reset_reply(void);
-static void api_disconnect(void);
-static void api_disconnect_reply(void);
-static void api_getMoteStatus(void);
-static void api_getMoteStatus_reply(void);
-static void api_openSocket(void);
-static void api_openSocket_reply(void);
-static void api_bindSocket(void);
-static void api_bindSocket_reply(void);
-static void api_setJoinKey(void);
-static void api_setJoinKey_reply(void);
-static void api_setNetworkId(void);
-static void api_setNetworkId_reply(void);
-static void api_join(void);
-static void api_join_reply(void);
-static void api_requestService(void);
-static void api_requestService_reply(void);
-static void api_getServiceInfo(void);
-static void api_getServiceInfo_reply(void);
-static void api_sendTo(void);
-static void api_sendTo_reply(void);
+static void event_response_timeout(void); // TODO: Better prefix?
+static void event_reset(void);
+static void reply_reset(void);
+static void event_disconnect(void);
+static void reply_disconnect(void);
+static void event_getMoteStatus(void);
+static void reply_getMoteStatus(void);
+static void event_openSocket(void);
+static void reply_openSocket(void);
+static void event_bindSocket(void);
+static void reply_bindSocket(void);
+static void event_setJoinKey(void);
+static void reply_setJoinKey(void);
+static void event_setNetworkId(void);
+static void reply_setNetworkId(void);
+static void event_join(void);
+static void reply_join(void);
+static void event_requestService(void);
+static void reply_requestService(void);
+static void event_getServiceInfo(void);
+static void reply_getServiceInfo(void);
+static void event_sendTo(void);
+static void reply_sendTo(void);
 // helpers
 static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms);
 static uint8_t getPayloadLimit(uint16_t destPort);
@@ -298,20 +298,20 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	switch (newState)
 	{
 	case FSM_STATE_PRE_JOIN:
-		fsm_scheduleEvent(delay, api_getMoteStatus);
+		fsm_scheduleEvent(delay, event_getMoteStatus);
 		break;
 	case FSM_STATE_JOINING:
-		fsm_scheduleEvent(delay, api_join);
+		fsm_scheduleEvent(delay, event_join);
 		break;
 	case FSM_STATE_REQ_SERVICE:
-		fsm_scheduleEvent(delay, api_requestService);
+		fsm_scheduleEvent(delay, event_requestService);
 		break;
 	case FSM_STATE_RESETTING:
-		fsm_scheduleEvent(delay, api_reset); // Faster
+		fsm_scheduleEvent(delay, event_reset); // Faster
 		//fsm_scheduleEvent(delay, api_disconnect); // More graceful
 		break;
 	case FSM_STATE_SENDING:
-		api_sendTo();
+		event_sendTo();
 		break;
 	case FSM_STATE_SEND_FAILED:
 	case FSM_STATE_DISCONNECTED:
@@ -405,7 +405,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			if (notif_events->events & MOTE_EVENT_MASK_SVC_CHANGE)
 			{
 				// Service request complete; check what we were granted
-				fsm_scheduleEvent(CMD_PERIOD_MS, api_getServiceInfo);
+				fsm_scheduleEvent(CMD_PERIOD_MS, event_getServiceInfo);
 				return;
 			}
 			break;
@@ -492,7 +492,7 @@ static void dn_ipmt_reply_cb(uint8_t cmdId)
 	dn_fsm_vars.replyCb();
 }
 
-static void api_response_timeout(void)
+static void event_response_timeout(void)
 {
 	debug("Response timeout");
 
@@ -519,11 +519,11 @@ static void api_response_timeout(void)
 	}
 }
 
-static void api_reset(void)
+static void event_reset(void)
 {
 	debug("Reset");
 	// Arm reply callback
-	fsm_setReplyCallback(api_reset_reply);
+	fsm_setReplyCallback(reply_reset);
 
 	// Issue mote API command
 	dn_ipmt_reset
@@ -532,10 +532,10 @@ static void api_reset(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_reset_reply(void)
+static void reply_reset(void)
 {
 	dn_ipmt_reset_rpt* reply;
 	debug("Reset reply");
@@ -560,12 +560,12 @@ static void api_reset_reply(void)
 	}
 }
 
-static void api_disconnect(void)
+static void event_disconnect(void)
 {
 	debug("Disconnect");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_disconnect_reply);
+	fsm_setReplyCallback(reply_disconnect);
 
 	// Issue mote API command
 	dn_ipmt_disconnect
@@ -574,10 +574,10 @@ static void api_disconnect(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_disconnect_reply(void)
+static void reply_disconnect(void)
 {
 	dn_ipmt_disconnect_rpt* reply;
 	debug("Disconnect reply");
@@ -597,17 +597,17 @@ static void api_disconnect_reply(void)
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_reset);
+		fsm_scheduleEvent(CMD_PERIOD_MS, event_reset);
 		break;
 	}
 }
 
-static void api_getMoteStatus(void)
+static void event_getMoteStatus(void)
 {
 	debug("Mote status");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_getMoteStatus_reply);
+	fsm_setReplyCallback(reply_getMoteStatus);
 
 	// Issue mote API command
 	dn_ipmt_getParameter_moteStatus
@@ -616,10 +616,10 @@ static void api_getMoteStatus(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_getMoteStatus_reply(void)
+static void reply_getMoteStatus(void)
 {
 	dn_ipmt_getParameter_moteStatus_rpt* reply;
 	debug("Mote status reply");
@@ -635,7 +635,7 @@ static void api_getMoteStatus_reply(void)
 	switch (reply->state)
 	{
 	case MOTE_STATE_IDLE:
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_openSocket);
+		fsm_scheduleEvent(CMD_PERIOD_MS, event_openSocket);
 		break;
 	case MOTE_STATE_OPERATIONAL:
 		fsm_enterState(FSM_STATE_RESETTING, 0);
@@ -646,12 +646,12 @@ static void api_getMoteStatus_reply(void)
 	}
 }
 
-static void api_openSocket(void)
+static void event_openSocket(void)
 {
 	debug("Open socket");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_openSocket_reply);
+	fsm_setReplyCallback(reply_openSocket);
 
 	// Issue mote API command
 	dn_ipmt_openSocket
@@ -661,10 +661,10 @@ static void api_openSocket(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_openSocket_reply(void)
+static void reply_openSocket(void)
 {
 	dn_ipmt_openSocket_rpt* reply;
 	debug("Open socket reply");
@@ -681,7 +681,7 @@ static void api_openSocket_reply(void)
 	case RC_OK:
 		debug("Socket %d opened successfully", reply->socketId);
 		dn_fsm_vars.socketId = reply->socketId;
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_bindSocket);
+		fsm_scheduleEvent(CMD_PERIOD_MS, event_bindSocket);
 		break;
 	case RC_NO_RESOURCES:
 		debug("Couldn't create socket due to resource availability");
@@ -695,12 +695,12 @@ static void api_openSocket_reply(void)
 	}
 }
 
-static void api_bindSocket(void)
+static void event_bindSocket(void)
 {
 	debug("Bind socket");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_bindSocket_reply);
+	fsm_setReplyCallback(reply_bindSocket);
 
 	// Issue mote API command
 	dn_ipmt_bindSocket
@@ -711,10 +711,10 @@ static void api_bindSocket(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_bindSocket_reply(void)
+static void reply_bindSocket(void)
 {
 	dn_ipmt_bindSocket_rpt* reply;
 	debug("Bind socket reply");
@@ -730,7 +730,7 @@ static void api_bindSocket_reply(void)
 	{
 	case RC_OK:
 		debug("Socket bound successfully");
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_setJoinKey);
+		fsm_scheduleEvent(CMD_PERIOD_MS, event_setJoinKey);
 		break;
 	case RC_BUSY:
 		debug("Port already bound");
@@ -748,12 +748,12 @@ static void api_bindSocket_reply(void)
 	}
 }
 
-static void api_setJoinKey(void)
+static void event_setJoinKey(void)
 {
 	debug("Set join key");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_setJoinKey_reply);
+	fsm_setReplyCallback(reply_setJoinKey);
 
 	// Issue mote API command
 	dn_ipmt_setParameter_joinKey
@@ -763,10 +763,10 @@ static void api_setJoinKey(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_setJoinKey_reply(void)
+static void reply_setJoinKey(void)
 {
 	dn_ipmt_setParameter_joinKey_rpt* reply;
 	debug("Set join key reply");
@@ -782,7 +782,7 @@ static void api_setJoinKey_reply(void)
 	{
 	case RC_OK:
 		debug("Join key set");
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_setNetworkId);
+		fsm_scheduleEvent(CMD_PERIOD_MS, event_setNetworkId);
 		break;
 	case RC_WRITE_FAIL:
 		debug("Could not write the key to storage");
@@ -795,12 +795,12 @@ static void api_setJoinKey_reply(void)
 	}
 }
 
-static void api_setNetworkId(void)
+static void event_setNetworkId(void)
 {
 	debug("Set network ID");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_setNetworkId_reply);
+	fsm_setReplyCallback(reply_setNetworkId);
 
 	// Issue mote API command
 	dn_ipmt_setParameter_networkId
@@ -810,10 +810,10 @@ static void api_setNetworkId(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_setNetworkId_reply(void)
+static void reply_setNetworkId(void)
 {
 	dn_ipmt_setParameter_networkId_rpt* reply;
 	debug("Set network ID reply");
@@ -842,12 +842,12 @@ static void api_setNetworkId_reply(void)
 	}
 }
 
-static void api_join(void)
+static void event_join(void)
 {
 	debug("Join");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_join_reply);
+	fsm_setReplyCallback(reply_join);
 
 	// Issue mote API command
 	dn_ipmt_join
@@ -856,10 +856,10 @@ static void api_join(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_join_reply(void)
+static void reply_join(void)
 {
 	dn_ipmt_join_rpt* reply;
 	debug("Join reply");
@@ -892,12 +892,12 @@ static void api_join_reply(void)
 	}
 }
 
-static void api_requestService(void)
+static void event_requestService(void)
 {
 	debug("Request service");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_requestService_reply);
+	fsm_setReplyCallback(reply_requestService);
 
 	// Issue mote API command
 	dn_ipmt_requestService
@@ -909,10 +909,10 @@ static void api_requestService(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_requestService_reply(void)
+static void reply_requestService(void)
 {
 	dn_ipmt_requestService_rpt* reply;
 	debug("Request service reply");
@@ -937,12 +937,12 @@ static void api_requestService_reply(void)
 	}
 }
 
-static void api_getServiceInfo(void)
+static void event_getServiceInfo(void)
 {
 	debug("Get service info");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_getServiceInfo_reply);
+	fsm_setReplyCallback(reply_getServiceInfo);
 
 	// Issue mote API command
 	dn_ipmt_getServiceInfo
@@ -953,10 +953,10 @@ static void api_getServiceInfo(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_getServiceInfo_reply(void)
+static void reply_getServiceInfo(void)
 {
 	dn_ipmt_getServiceInfo_rpt* reply;
 	debug("Get service info reply");
@@ -985,7 +985,7 @@ static void api_getServiceInfo_reply(void)
 		} else
 		{
 			debug("Service request still pending");
-			fsm_scheduleEvent(CMD_PERIOD_MS, api_getServiceInfo);
+			fsm_scheduleEvent(CMD_PERIOD_MS, event_getServiceInfo);
 		}
 		break;
 	default:
@@ -995,13 +995,13 @@ static void api_getServiceInfo_reply(void)
 	}
 }
 
-static void api_sendTo(void)
+static void event_sendTo(void)
 {
 	dn_err_t err;
 	debug("Send");
 
 	// Arm reply callback
-	fsm_setReplyCallback(api_sendTo_reply);
+	fsm_setReplyCallback(reply_sendTo);
 
 	// Issue mote API command
 	err = dn_ipmt_sendTo
@@ -1022,10 +1022,10 @@ static void api_sendTo(void)
 	}
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, api_response_timeout);
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
-static void api_sendTo_reply(void)
+static void reply_sendTo(void)
 {
 	dn_ipmt_sendTo_rpt* reply;
 	debug("Send reply");
