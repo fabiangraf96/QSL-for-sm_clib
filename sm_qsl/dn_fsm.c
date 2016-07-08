@@ -86,7 +86,7 @@ static uint8_t getPayloadLimit(uint16_t destPort);
 
 //=========================== public ==========================================
 
-//=== QSL API ===
+//========== QSL API
 
 bool dn_qsl_init(void)
 {
@@ -246,7 +246,7 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 
 //=========================== private =========================================
 
-//=== FSM ===
+//========== FSM
 
 static void fsm_run(void)
 {
@@ -361,8 +361,16 @@ static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
 	return timeout;
 }
 
-//=== C Library API ===
+//========== C Library API
 
+//===== notif_cb
+
+/**
+ This function is called whenever a notification is received through the
+ SmartMesh C Library. The notification variables are than available through
+ the notification buffer that can be cast to the correct type based on the
+ given command ID (notification type).
+ */
 static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 {
 	//dn_ipmt_timeIndication_nt* notif_timeIndication;
@@ -481,6 +489,13 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	}
 }
 
+//===== reply_cb
+
+/**
+ This function is called whenever a reply is received through the SmartMesh.
+ C Library. It calls the reply function that was armed at the start of the
+ current event.
+ */
 static void dn_ipmt_reply_cb(uint8_t cmdId)
 {
 	debug("Got reply: cmdId; %#x (%u)", cmdId, cmdId);
@@ -492,6 +507,12 @@ static void dn_ipmt_reply_cb(uint8_t cmdId)
 	dn_fsm_vars.replyCb();
 }
 
+//===== response_timeout
+
+/**
+ This event is scheduled after each mote API command is sent, effectively
+ placing a timeout for the mote to reply.
+ */
 static void event_response_timeout(void)
 {
 	debug("Response timeout");
@@ -519,6 +540,12 @@ static void event_response_timeout(void)
 	}
 }
 
+//===== reset
+
+/**
+ Initiates a soft-reset of the mote. Its reply simply checks that
+ the command was accepted, as the FSM will wait for the ensuing boot event.
+ */
 static void event_reset(void)
 {
 	debug("Reset");
@@ -560,6 +587,14 @@ static void reply_reset(void)
 	}
 }
 
+//===== disconnect
+
+/**
+ This event does much the same as reset, however it uses the disconnect command
+ instead, where the mote first spends a couple of seconds notifying its
+ neighbors of its imminent soft-reset. If the reply is anything but success,
+ it will schedule a simple reset event instead.
+ */
 static void event_disconnect(void)
 {
 	debug("Disconnect");
@@ -602,6 +637,13 @@ static void reply_disconnect(void)
 	}
 }
 
+//===== getMoteStatus
+
+/**
+ Asks the mote for its status, and the reply will use the reported
+ mote state to decide whether or not it is ready to proceed with pre-join
+ configurations or if a reset is needed first.
+ */
 static void event_getMoteStatus(void)
 {
 	debug("Mote status");
@@ -646,6 +688,13 @@ static void reply_getMoteStatus(void)
 	}
 }
 
+//===== openSocket
+
+/**
+ Tells the mote to open a socket, and the reply saves the reported
+ socket ID before scheduling its binding. If no sockets are available, a mote
+ reset is scheduled and the connect process starts over.
+ */
 static void event_openSocket(void)
 {
 	debug("Open socket");
@@ -695,6 +744,12 @@ static void reply_openSocket(void)
 	}
 }
 
+//===== bindSocket
+
+/**
+ Binds the previously opened socket to a port. If said port is already bound,
+ a mote reset is scheduled and the connect process starts over.
+ */
 static void event_bindSocket(void)
 {
 	debug("Bind socket");
@@ -734,7 +789,6 @@ static void reply_bindSocket(void)
 		break;
 	case RC_BUSY:
 		debug("Port already bound");
-		// Own state for disconnect?
 		fsm_enterState(FSM_STATE_RESETTING, 0);
 		break;
 	case RC_NOT_FOUND:
@@ -748,6 +802,12 @@ static void reply_bindSocket(void)
 	}
 }
 
+//===== setJoinKey
+
+/**
+ Configures the join key that the mote should use when attempting to join a
+ network.
+ */
 static void event_setJoinKey(void)
 {
 	debug("Set join key");
@@ -795,6 +855,11 @@ static void reply_setJoinKey(void)
 	}
 }
 
+//===== setNetworkId
+
+/**
+ Configures the ID of the network that the mote should should try to join.
+ */
 static void event_setNetworkId(void)
 {
 	debug("Set network ID");
@@ -842,6 +907,15 @@ static void reply_setNetworkId(void)
 	}
 }
 
+//===== join
+
+/**
+ Requests that the mote start searching for the previously configured network
+ and attempt to join with the configured join key. If the mote is in an invalid
+ state to join or lacks configuration to start joining, a reset is scheduled and
+ the connect procedure starts over. Otherwise the FSM will wait for the ensuing
+ operational event when the mote has finished joining.
+ */
 static void event_join(void)
 {
 	debug("Join");
@@ -892,6 +966,13 @@ static void reply_join(void)
 	}
 }
 
+//===== requestService
+
+/**
+ The mote is told to request a new service level from the manager. Its reply
+ simply checks that the command was accepted, as the FSM will wait for the
+ ensuing svcChange event when the service allocation has changed.
+ */
 static void event_requestService(void)
 {
 	debug("Request service");
@@ -937,6 +1018,13 @@ static void reply_requestService(void)
 	}
 }
 
+//===== getServiceInfo
+
+/**
+ Requests details about the service currently allocated to the mote. Its reply
+ checks that we have been granted a service equal to or better than what was
+ requested (smaller value equals better).
+ */
 static void event_getServiceInfo(void)
 {
 	debug("Get service info");
@@ -995,6 +1083,12 @@ static void reply_getServiceInfo(void)
 	}
 }
 
+//===== sendTo
+
+/**
+ This event sends a packet into the network, and its reply checks that it was
+ accepted and queued up for transmission.
+ */
 static void event_sendTo(void)
 {
 	dn_err_t err;
