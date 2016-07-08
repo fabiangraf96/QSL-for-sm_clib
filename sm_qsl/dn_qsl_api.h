@@ -6,7 +6,7 @@
 
 /* 
  * File:   dn_qsl_api.h
- * Author: jhbr
+ * Author: jhbr@datarespons.no
  *
  * Created on 23. juni 2016, 12:36
  */
@@ -21,7 +21,6 @@
 
 #define DEST_IP		DEFAULT_DEST_IP
 #define INBOX_PORT	DEFAULT_SRC_PORT
-#define INBOX_SIZE	10
 
 //=========================== typedef =========================================
 

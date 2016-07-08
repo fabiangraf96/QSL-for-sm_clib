@@ -4,6 +4,13 @@
  * and open the template in the editor.
  */
 
+/* 
+ * File:   dn_lock.c
+ * Author: jhbr@datarespons.no
+ *
+ * Created on 21. juni 2016, 09:05
+ */
+
 #include "dn_lock.h"
 
 //=========================== variables =======================================

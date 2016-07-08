@@ -4,6 +4,13 @@
  * and open the template in the editor.
  */
 
+/* 
+ * File:   dn_endianness.c
+ * Author: jhbr@datarespons.no
+ *
+ * Created on 21. juni 2016, 13:09
+ */
+
 #include "dn_endianness.h"
 
 //=========================== variables =======================================

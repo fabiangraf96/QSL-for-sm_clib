@@ -6,7 +6,7 @@
 
 /* 
  * File:   dn_defaults.h
- * Author: jhbr
+ * Author: jhbr@datarespons.no
  *
  * Created on 4. juli 2016, 16:31
  */

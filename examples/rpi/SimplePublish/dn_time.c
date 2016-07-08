@@ -4,6 +4,13 @@
  * and open the template in the editor.
  */
 
+/* 
+ * File:   dn_time.c
+ * Author: jhbr@datarespons.no
+ *
+ * Created on 23. juni 2016, 12:40
+ */
+
 #include <time.h>
 
 #include "dn_time.h"

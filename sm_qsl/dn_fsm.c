@@ -4,6 +4,13 @@
  * and open the template in the editor.
  */
 
+/* 
+ * File:   dn_fsm.c
+ * Author: jhbr@datarespons.no
+ *
+ * Created on 21. juni 2016, 13:09
+ */
+
 #include "dn_fsm.h"
 #include "dn_ipmt.h"
 #include "dn_time.h"
@@ -294,7 +301,7 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 		fsm_scheduleEvent(delay, api_getMoteStatus);
 		break;
 	case FSM_STATE_JOINING:
-		fsm_scheduleEvent(CMD_PERIOD_MS, api_join);
+		fsm_scheduleEvent(delay, api_join);
 		break;
 	case FSM_STATE_REQ_SERVICE:
 		fsm_scheduleEvent(delay, api_requestService);
@@ -377,7 +384,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		notif_events = (dn_ipmt_events_nt*)dn_fsm_vars.notifBuf;
 		debug("State: %#x | Events: %#x", notif_events->state, notif_events->events);
 
-		// Check if in fsm states where we expect certain mote events
+		// Check if in fsm state where we expect a certain mote event
 		switch (dn_fsm_vars.state)
 		{
 		case FSM_STATE_JOINING:
@@ -393,6 +400,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 				}
 				return;
 			}
+			break;
 		case FSM_STATE_REQ_SERVICE:
 			if (notif_events->events & MOTE_EVENT_MASK_SVC_CHANGE)
 			{
@@ -400,6 +408,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 				fsm_scheduleEvent(CMD_PERIOD_MS, api_getServiceInfo);
 				return;
 			}
+			break;
 		}
 
 		// Check if reported mote state should trigger fsm state transition

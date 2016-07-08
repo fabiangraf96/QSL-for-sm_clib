@@ -6,7 +6,7 @@
 
 /* 
  * File:   dn_fsm.h
- * Author: jhbr
+ * Author: jhbr@datarespons.no
  *
  * Created on 22. juni 2016, 15:15
  */
@@ -16,7 +16,6 @@
 
 #include "dn_common.h"
 #include "dn_defaults.h"
-#include "dn_qsl_api.h"
 
 //=========================== defines =========================================
 
@@ -90,6 +89,8 @@
 #define PACKET_PRIORITY_HIGH	0x02
 
 #define PACKET_ID_NO_NOTIF	0xffff // Do not generate txDone notification
+
+#define INBOX_SIZE	10
 
 //=========================== typedef =========================================
 

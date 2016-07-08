@@ -6,7 +6,7 @@
 
 /* 
  * File:   dn_watchdog.h
- * Author: jhbr
+ * Author: jhbr@datarespons.no
  *
  * Created on 23. juni 2016, 12:36
  */

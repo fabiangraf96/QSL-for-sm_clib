@@ -4,6 +4,13 @@
  * and open the template in the editor.
  */
 
+/* 
+ * File:   dn_uart.c
+ * Author: jhbr@datarespons.no
+ *
+ * Created on 22. juni 2016, 10:19
+ */
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
@@ -69,7 +76,7 @@ void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 	tcflush(dn_uart_vars.uart_fd, TCIFLUSH);
 	tcsetattr(dn_uart_vars.uart_fd, TCSANOW, &options);
 	
-	// Start read deamon to listen for UART RX
+	// Start read daemon to listen for UART RX
 	rc = pthread_create(&dn_uart_vars.read_daemon, NULL, dn_uart_read_daemon, NULL);
 	if (rc != 0)
 	{
@@ -79,7 +86,7 @@ void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 
 void dn_uart_txByte(uint8_t byte)
 {
-	int32_t rc;
+	int rc;
 	if (dn_uart_vars.uart_fd == -1)
 	{
 		log_err("UART not initialized (tx)");
@@ -89,10 +96,11 @@ void dn_uart_txByte(uint8_t byte)
 	rc = write(dn_uart_vars.uart_fd, &byte, 1);
 	if (rc < 0)
 	{
-		// Error
+		log_warn("Write to UART failed");
 	} else if (rc == 0)
 	{
 		// Nothing was sent
+		log_warn("Write to UART sent nothing");
 	} else
 	{
 		//debug("dn_uart: Sent a byte");
@@ -110,7 +118,7 @@ void dn_uart_txFlush(void)
 static void* dn_uart_read_daemon(void* arg)
 {
 	struct timeval timeout;
-	int32_t rc;
+	int rc;
 	fd_set set;
 	uint8_t rxBuff[MAX_FRAME_LENGTH];
 	int8_t rxBytes = 0;
@@ -134,7 +142,7 @@ static void* dn_uart_read_daemon(void* arg)
 		rc = select(dn_uart_vars.uart_fd + 1, &set, NULL, NULL, &timeout);
 		if (rc < 0)
 		{
-			// Error
+			log_warn("Read daemon select error");
 		} else if (rc == 0)
 		{
 			// Timeout
@@ -142,7 +150,10 @@ static void* dn_uart_read_daemon(void* arg)
 		{
 			// There are Bytes ready to be read
 			rxBytes = read(dn_uart_vars.uart_fd, rxBuff, MAX_FRAME_LENGTH);
-			if (rxBytes > 0)
+			if (rxBytes < 0)
+			{
+				log_warn("Read from UART failed");
+			} else if (rxBytes > 0)
 			{
 				debug("Received %d bytes", rxBytes);
 				for (n = 0; n < rxBytes; n++)

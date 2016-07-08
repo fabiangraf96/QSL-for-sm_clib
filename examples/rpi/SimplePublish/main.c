@@ -6,7 +6,7 @@
 
 /* 
  * File:   main.c
- * Author: jhbr
+ * Author: jhbr@datarespons.no
  *
  * Created on 21. juni 2016, 13:09
  */
