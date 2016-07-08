@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 	log_info("Initializing...");
 	dn_qsl_init(); // Always returns TRUE atm
 
-	while (dn_qsl_connect(netID, joinKey, 0))//service_ms))
+	while (dn_qsl_connect(netID, joinKey, service_ms))
 	{
 		uint16_t val = nextValue();
 		dn_write_uint16_t(payload, val);

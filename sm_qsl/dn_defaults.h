@@ -21,14 +21,14 @@
 #define IPv6ADDR_LEN	16
 #define JOIN_KEY_LEN	16
 
-#define PAYLOAD_SIZE_LIMIT_MNG_HIGH	90
-#define PAYLOAD_SIZE_LIMIT_MNG_MED	88
-#define PAYLOAD_SIZE_LIMIT_MNG_LOW	87
-#define PAYLOAD_SIZE_LIMIT_IP_HIGH	74
-#define PAYLOAD_SIZE_LIMIT_IP_MED	72
-#define PAYLOAD_SIZE_LIMIT_IP_LOW	71
-
-#define MIN_TX_INTERPACKET_DELAY	20
+static const uint8_t default_joinKey[JOIN_KEY_LEN] = {
+   0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
+   0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4B
+};
+static const uint8_t default_manager_ipv6Addr[IPv6ADDR_LEN] = {
+   0xff,0x02,0x00,0x00,0x00,0x00,0x00,0x00,
+   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02
+};
 
 #define WELL_KNOWN_PORT_1	0xf0b8
 #define WELL_KNOWN_PORT_2	0xf0b9
@@ -39,14 +39,12 @@
 #define WELL_KNOWN_PORT_7	0xf0be
 #define WELL_KNOWN_PORT_8	0xf0bf
 
-static const uint8_t default_joinKey[JOIN_KEY_LEN] = {
-   0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
-   0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4B
-};
-static const uint8_t default_manager_ipv6Addr[IPv6ADDR_LEN] = {
-   0xff,0x02,0x00,0x00,0x00,0x00,0x00,0x00,
-   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02
-};
+#define PAYLOAD_SIZE_LIMIT_MNG_HIGH	90
+#define PAYLOAD_SIZE_LIMIT_MNG_MED	88
+#define PAYLOAD_SIZE_LIMIT_MNG_LOW	87
+#define PAYLOAD_SIZE_LIMIT_IP_HIGH	74
+#define PAYLOAD_SIZE_LIMIT_IP_MED	72
+#define PAYLOAD_SIZE_LIMIT_IP_LOW	71
 
 #define DEFAULT_NET_ID				1229
 #define DEFAULT_JOIN_KEY			(uint8_t*)default_joinKey

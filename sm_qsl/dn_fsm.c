@@ -95,8 +95,8 @@ bool dn_qsl_init(void)
 			sizeof (dn_fsm_vars.notifBuf),
 			dn_ipmt_reply_cb
 			);
-
-	fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+	
+	fsm_enterState(FSM_STATE_DISCONNECTED, 0);	
 	return TRUE;
 }
 
@@ -159,6 +159,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 			&& dn_fsm_vars.state != FSM_STATE_DISCONNECTED
 			&& !fsm_cmd_timeout(cmdStart_ms, CONNECT_TIMEOUT_S * 1000))
 	{
+		dn_watchdog_feed();
 		fsm_run();
 	}
 
@@ -197,6 +198,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 	while (dn_fsm_vars.state == FSM_STATE_SENDING
 			&& !fsm_cmd_timeout(cmdStart_ms, SEND_TIMEOUT_MS))
 	{
+		dn_watchdog_feed();
 		fsm_run();
 	}
 
@@ -540,7 +542,7 @@ static void api_reset_reply(void)
 	{
 	case RC_OK:
 		debug("Mote soft-reset initiated");
-		//fsm_enterState(FSM_STATE_PRE_JOIN, BACKOFF_AFTER_RESET_MS);
+		// Will wait for notification of reboot
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -582,7 +584,7 @@ static void api_disconnect_reply(void)
 	{
 	case RC_OK:
 		debug("Mote disconnect initiated");
-		//fsm_enterState(FSM_STATE_PRE_JOIN, BACKOFF_AFTER_DISCONNECT_MS);
+		// Will wait for notification of reboot
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -864,7 +866,7 @@ static void api_join_reply(void)
 	{
 	case RC_OK:
 		debug("Join operation started");
-		// Will wait for operational event
+		// Will wait for join complete notification (operational event)
 		break;
 	case RC_INVALID_STATE:
 		debug("The mote is in an invalid state to start join operation");

@@ -20,12 +20,7 @@
 
 //=========================== defines =========================================
 
-#define MOTE_STATE_IDLE           0x01
-#define MOTE_STATE_SEARCHING      0x02
-#define MOTE_STATE_NEGOCIATING    0x03
-#define MOTE_STATE_CONNECTED      0x04
-#define MOTE_STATE_OPERATIONAL    0x05
-
+// FSM states
 #define FSM_STATE_NOT_INITIALIZED	0x00
 #define FSM_STATE_DISCONNECTED		0x01
 #define FSM_STATE_PRE_JOIN			0x02
@@ -36,6 +31,14 @@
 #define FSM_STATE_SENDING			0x10
 #define FSM_STATE_SEND_FAILED		0x11
 
+// Mote states
+#define MOTE_STATE_IDLE           0x01
+#define MOTE_STATE_SEARCHING      0x02
+#define MOTE_STATE_NEGOCIATING    0x03
+#define MOTE_STATE_CONNECTED      0x04
+#define MOTE_STATE_OPERATIONAL    0x05
+
+// Mote events
 #define MOTE_EVENT_MASK_NONE			0x0000
 #define MOTE_EVENT_MASK_BOOT			0x0001
 #define MOTE_EVENT_MASK_ALARM_CHANGE	0x0002
@@ -46,6 +49,7 @@
 #define MOTE_EVENT_MASK_SVC_CHANGE		0x0080
 #define MOTE_EVENT_MASK_JOIN_STARTED	0x0100
 
+// Mote response codes
 #define RC_OK					0x00
 #define RC_ERROR				0x01
 #define RC_BUSY					0x03
@@ -64,13 +68,14 @@
 #define RC_ACCESS_DENIED		0x10
 #define RC_ERASE_FAIL			0x12
 
+// Timing
 #define FSM_RUN_INTERVAL_MS			10
-#define BACKOFF_AFTER_RESET_MS		5000
+#define MIN_TX_INTERPACKET_DELAY_MS	20
 #define BACKOFF_AFTER_DISCONNECT_MS	30000
-#define CMD_PERIOD_MS				MIN_TX_INTERPACKET_DELAY + 10
-#define SERIAL_RESPONSE_TIMEOUT_MS	500
-#define CONNECT_TIMEOUT_S			120
-#define SEND_TIMEOUT_MS				1000
+#define CMD_PERIOD_MS				MIN_TX_INTERPACKET_DELAY_MS * 5
+#define SERIAL_RESPONSE_TIMEOUT_MS	500 // Very conservative; commands are expected to be answered within 125 ms
+#define CONNECT_TIMEOUT_S			120 // Usually takes 10-60 s, but service req. can add 30 s more
+#define SEND_TIMEOUT_MS				1000 // Usually takes < 20 ms
 
 #define PROTOCOL_TYPE_UDP	0x00
 
@@ -81,10 +86,10 @@
 #define SERVICE_STATE_PENDING	0x01
 
 #define PACKET_PRIORITY_LOW		0x00
-#define PACKET_PRIORITY_MEDIUM	0x01
+#define PACKET_PRIORITY_MEDIUM	0x01 // Recommended for data traffic
 #define PACKET_PRIORITY_HIGH	0x02
 
-#define PACKET_ID_NO_NOTIF	0xffff
+#define PACKET_ID_NO_NOTIF	0xffff // Do not generate txDone notification
 
 //=========================== typedef =========================================
 
