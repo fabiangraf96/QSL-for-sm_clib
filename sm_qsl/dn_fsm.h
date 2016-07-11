@@ -73,7 +73,7 @@
 #define BACKOFF_AFTER_DISCONNECT_MS	30000
 #define CMD_PERIOD_MS				MIN_TX_INTERPACKET_DELAY_MS * 5
 #define SERIAL_RESPONSE_TIMEOUT_MS	500 // Very conservative; commands are expected to be answered within 125 ms
-#define CONNECT_TIMEOUT_S			120 // Usually takes 10-60 s, but service req. can add 30 s more
+#define CONNECT_TIMEOUT_S			120 // Usually takes 10-60 s, but service req. can add 60 s
 #define SEND_TIMEOUT_MS				1000 // Usually takes < 20 ms
 
 #define PROTOCOL_TYPE_UDP	0x00

@@ -103,7 +103,7 @@ bool dn_qsl_init(void)
 			dn_ipmt_reply_cb
 			);
 	
-	fsm_enterState(FSM_STATE_DISCONNECTED, 0);	
+	fsm_enterState(FSM_STATE_DISCONNECTED, 0);
 	return TRUE;
 }
 
@@ -1113,6 +1113,7 @@ static void event_sendTo(void)
 	if (err != DN_ERR_NONE)
 	{
 		debug("Send error: %u", err);
+		fsm_enterState(FSM_STATE_SEND_FAILED, 0);
 	}
 
 	// Schedule timeout for reply
