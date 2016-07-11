@@ -72,6 +72,8 @@ static void event_setJoinKey(void);
 static void reply_setJoinKey(void);
 static void event_setNetworkId(void);
 static void reply_setNetworkId(void);
+static void event_search(void);
+static void reply_search(void);
 static void event_join(void);
 static void reply_join(void);
 static void event_requestService(void);
@@ -300,6 +302,9 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	case FSM_STATE_PRE_JOIN:
 		fsm_scheduleEvent(delay, event_getMoteStatus);
 		break;
+	case FSM_STATE_PROMISCUOUS:
+		fsm_scheduleEvent(delay, event_search);
+		break;
 	case FSM_STATE_JOINING:
 		fsm_scheduleEvent(delay, event_join);
 		break;
@@ -319,7 +324,7 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 		// These states have no default entry events
 		break;
 	default:
-		log_warn("Attempt at entering unexpected state %u", newState);
+		log_warn("Attempt at entering unexpected state %#x", newState);
 		return;
 	}
 
@@ -378,7 +383,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	dn_ipmt_receive_nt* notif_receive;
 	//dn_ipmt_macRx_nt* notif_macRx;
 	//dn_ipmt_txDone_nt* notif_txDone;
-	//dn_ipmt_advReceived_nt* notif_advReceived;
+	dn_ipmt_advReceived_nt* notif_advReceived;
 
 	debug("Got notification: cmdId; %#x (%u), subCmdId; %#x (%u)",
 			cmdId, cmdId, subCmdId, subCmdId);
@@ -481,7 +486,18 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		// Not implemented
 		break;
 	case CMDID_ADVRECEIVED:
-		// Not implemented (TODO: Promiscuous connect?)
+		notif_advReceived = (dn_ipmt_advReceived_nt*)dn_fsm_vars.notifBuf;
+		debug("Received network advertisement");
+		
+		if (dn_fsm_vars.state == FSM_STATE_PROMISCUOUS
+				&& dn_fsm_vars.networkId == PROMISCUOUS_NET_ID)
+		{
+			debug("Saving network ID: %#x (%u)",
+					notif_advReceived->netId, notif_advReceived->netId);
+			dn_fsm_vars.networkId = notif_advReceived->netId;
+			fsm_scheduleEvent(CMD_PERIOD_MS, event_setNetworkId);
+		}
+		
 		break;
 	default:
 		log_warn("Unknown notification ID");
@@ -842,7 +858,19 @@ static void reply_setJoinKey(void)
 	{
 	case RC_OK:
 		debug("Join key set");
-		fsm_scheduleEvent(CMD_PERIOD_MS, event_setNetworkId);
+		if (dn_fsm_vars.networkId == PROMISCUOUS_NET_ID)
+		{
+			// Promiscuous netID set; search for new first
+			fsm_enterState(FSM_STATE_PROMISCUOUS, 0);
+			/*
+			 As of version 1.4.x, a network ID of 0xFFFF can be used to indicate
+			 that the mote should join the first network heard. Thus, searching
+			 before joining will not be necessary.
+			*/
+		} else
+		{
+			fsm_scheduleEvent(CMD_PERIOD_MS, event_setNetworkId);
+		}
 		break;
 	case RC_WRITE_FAIL:
 		debug("Could not write the key to storage");
@@ -899,6 +927,52 @@ static void reply_setNetworkId(void)
 	case RC_WRITE_FAIL:
 		debug("Could not write the network ID to storage");
 		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		break;
+	default:
+		log_warn("Unexpected response code: %#x", reply->RC);
+		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		break;
+	}
+}
+
+static void event_search(void)
+{
+	debug("Search");
+	
+	// Arm reply callback
+	fsm_setReplyCallback(reply_search);
+
+	// Issue mote API command
+	dn_ipmt_search
+			(
+			(dn_ipmt_search_rpt*)dn_fsm_vars.replyBuf
+			);
+
+	// Schedule timeout for reply
+	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+}
+
+static void reply_search(void)
+{
+	dn_ipmt_search_rpt* reply;
+	debug("Search reply");
+
+	// Cancel reply timeout
+	fsm_cancelEvent();
+
+	// Parse reply
+	reply = (dn_ipmt_search_rpt*)dn_fsm_vars.replyBuf;
+
+	// Choose next event or state transition
+	switch (reply->RC)
+	{
+	case RC_OK:
+		debug("Searching for network advertisements");
+		// Will wait for notification of advertisement received
+		break;
+	case RC_INVALID_STATE:
+		debug("The mote is in an invalid state to start searching");
+		fsm_enterState(FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
@@ -1157,10 +1231,10 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t
 	{
 		debug("No network ID given; using default");
 		dn_fsm_vars.networkId = DEFAULT_NET_ID;
-	} else if (netID == 0xFFFF)
+	} else if (netID == PROMISCUOUS_NET_ID)
 	{
-		log_err("Invalid network ID: %#x (%u)", netID, netID);
-		return DN_ERR_MALFORMED;
+		debug("Promiscuous network ID given; will search for and join first network advertised");
+		dn_fsm_vars.networkId = netID;
 	} else
 	{
 		dn_fsm_vars.networkId = netID;

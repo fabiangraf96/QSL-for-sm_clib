@@ -26,6 +26,7 @@
 #define FSM_STATE_JOINING			0x03
 #define FSM_STATE_REQ_SERVICE		0x04
 #define FSM_STATE_RESETTING			0x05
+#define FSM_STATE_PROMISCUOUS		0x06
 #define FSM_STATE_CONNECTED			0x0f
 #define FSM_STATE_SENDING			0x10
 #define FSM_STATE_SEND_FAILED		0x11
@@ -73,7 +74,7 @@
 #define BACKOFF_AFTER_DISCONNECT_MS	30000
 #define CMD_PERIOD_MS				MIN_TX_INTERPACKET_DELAY_MS * 5
 #define SERIAL_RESPONSE_TIMEOUT_MS	500 // Very conservative; commands are expected to be answered within 125 ms
-#define CONNECT_TIMEOUT_S			120 // Usually takes 10-60 s, but service req. can add 60 s
+#define CONNECT_TIMEOUT_S			180 // Usually takes 10-60 s, but service req. and promiscuous search can add 60 s each.
 #define SEND_TIMEOUT_MS				1000 // Usually takes < 20 ms
 
 #define PROTOCOL_TYPE_UDP	0x00

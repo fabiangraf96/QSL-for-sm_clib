@@ -54,6 +54,7 @@ static const uint8_t default_manager_ipv6Addr[IPv6ADDR_LEN] = {
 #define DEFAULT_PAYLOAD_SIZE_LIMIT	PAYLOAD_SIZE_LIMIT_MNG_HIGH
 #define DEFAULT_SERVICE_MS			9000
 
+#define PROMISCUOUS_NET_ID	0xffff
 
 //=========================== typedef =========================================
 
