@@ -124,7 +124,6 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 	{
 	case DN_FSM_STATE_NOT_INITIALIZED:
 		log_warn("Can't connect; not initialized");
-		// TODO: Could initialize for user?
 		return FALSE;
 	case DN_FSM_STATE_DISCONNECTED:
 		err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
@@ -345,7 +344,11 @@ static void dn_fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 			dn_fsm_scheduleEvent(delay, dn_event_reset); // Faster
 		break;
 	case DN_FSM_STATE_SENDING:
-		dn_event_sendTo();
+		/*
+		 Send is scheduled immediately because it is the users responsibility
+		 to implement the necessary backoff and not exceed the granted bandwidth.
+		 */
+		dn_fsm_scheduleEvent(0, dn_event_sendTo);
 		break;
 	case DN_FSM_STATE_SEND_FAILED:
 	case DN_FSM_STATE_DISCONNECTED:
@@ -726,7 +729,7 @@ static void dn_reply_getMoteStatus(void)
 
 	// Parse reply
 	reply = (dn_ipmt_getParameter_moteStatus_rpt*)dn_fsm_vars.replyBuf;
-	debug("State: %#x", reply->state);
+	debug("Mote state: %#.2x", reply->state);
 
 	// Choose next event or state transition
 	switch (reply->state)
