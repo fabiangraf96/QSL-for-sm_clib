@@ -339,8 +339,10 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 		fsm_scheduleEvent(delay, event_requestService);
 		break;
 	case FSM_STATE_RESETTING:
-		fsm_scheduleEvent(delay, event_reset); // Faster
-		//fsm_scheduleEvent(delay, api_disconnect); // More graceful
+		if (MOTE_DISCONNECT_BEFORE_RESET)
+			fsm_scheduleEvent(delay, event_disconnect); // More graceful
+		else
+			fsm_scheduleEvent(delay, event_reset); // Faster
 		break;
 	case FSM_STATE_SENDING:
 		event_sendTo();
@@ -678,6 +680,10 @@ static void reply_disconnect(void)
 	case RC_OK:
 		debug("Mote disconnect initiated");
 		// Will wait for notification of reboot
+		break;
+	case RC_INVALID_STATE:
+		debug("The mote is in an invalid state to disconnect; resetting");
+		fsm_scheduleEvent(CMD_PERIOD_MS, event_reset);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);

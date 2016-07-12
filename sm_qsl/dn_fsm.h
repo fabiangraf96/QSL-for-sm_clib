@@ -95,6 +95,14 @@
 //===== Read
 #define INBOX_SIZE	10 // Max number of buffered downstream messages
 
+//===== Reset/disconnect
+/*
+ Disconnecting will be more graceful, as the mote first notifies neighbors of
+ its imminent software reset. It does, however, take much longer:
+ About 20 seconds for disconnect vs 5 seconds for reset only.
+ */
+#define MOTE_DISCONNECT_BEFORE_RESET TRUE
+
 //=========================== typedef =========================================
 
 typedef void (*fsm_timer_callback)(void);
