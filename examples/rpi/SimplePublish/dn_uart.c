@@ -21,6 +21,13 @@
 #include "dn_ipmt.h"
 #include "dn_debug.h"
 
+//=========================== defines =========================================
+#define UART_INTERNAL	"/dev/ttyAMA0" // External USB UART
+#define UART_EXTERNAL	"/dev/ttyUSB0" // On-board UART (Pin 8 & 10)
+
+#define UART_PORTNAME			UART_EXTERNAL
+#define UART_READ_TIMEOUT_US	500000
+
 //=========================== variables =======================================
 
 typedef struct {
@@ -41,8 +48,7 @@ static void* dn_uart_read_daemon(void* arg);
 
 void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 {
-	char *portname = "/dev/ttyUSB0"; // External USB UART
-	//char *portname = "/dev/ttyAMA0"; // On-board UART
+	char *portname = UART_PORTNAME;
 	struct termios options;
 	int32_t rc;
 	
@@ -136,9 +142,9 @@ static void* dn_uart_read_daemon(void* arg)
 		// Add socket to set
 		FD_ZERO(&set);
 		FD_SET(dn_uart_vars.uart_fd, &set);
-		// Set select timeout to 0.5 seconds (TODO: Any reason not to set higher?)
+		// Set select timeout
 		timeout.tv_sec = 0;
-		timeout.tv_usec = 500000;
+		timeout.tv_usec = UART_READ_TIMEOUT_US;
 		rc = select(dn_uart_vars.uart_fd + 1, &set, NULL, NULL, &timeout);
 		if (rc < 0)
 		{
