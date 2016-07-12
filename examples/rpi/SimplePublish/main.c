@@ -27,41 +27,54 @@ static void parsePayload(uint8_t *payload, uint8_t size);
 int main(int argc, char** argv)
 {
 	uint16_t netID = 1230;
-	uint8_t joinKey[JOIN_KEY_LEN] =
+	uint8_t joinKey[DN_JOIN_KEY_LEN] =
 	{
 		0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
 		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
 	};
 	uint32_t service_ms = 9000;
-	uint16_t destPort = DEFAULT_DEST_PORT;
+	uint16_t destPort = DN_DEFAULT_DEST_PORT;
 	bool success = FALSE;
 	uint8_t payload[2];
-	uint8_t inboxBuf[DEFAULT_PAYLOAD_SIZE_LIMIT];
+	uint8_t inboxBuf[DN_DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t readBytes;
 	
 	log_info("Initializing...");
 	dn_qsl_init(); // Always returns TRUE atm
 
-	while (dn_qsl_connect(netID, joinKey, service_ms))
+	while (TRUE)
 	{
-		uint16_t val = nextValue();
-		dn_write_uint16_t(payload, val);
-		success = dn_qsl_send(payload, sizeof (val), destPort);
-		if (success)
+		if (dn_qsl_isConnected())
 		{
-			log_info("Sent message: %u", val);
+			uint16_t val = nextValue();
+			dn_write_uint16_t(payload, val);
+			success = dn_qsl_send(payload, sizeof (val), destPort);
+			if (success)
+			{
+				log_info("Sent message: %u", val);
+			} else
+			{
+				log_info("Send failed");
+			}
+
+			do
+			{
+				readBytes = dn_qsl_read(inboxBuf);
+				parsePayload(inboxBuf, readBytes);
+			} while (readBytes > 0);
+			
+			dn_sleep_ms(service_ms);
 		} else
 		{
-			log_info("Send failed");
+			success = dn_qsl_connect(netID, joinKey, 0);//service_ms);
+			if (success)
+			{
+				log_info("Connected to network");
+			} else
+			{
+				log_info("Failed to connect");
+			}
 		}
-
-		do
-		{
-			readBytes = dn_qsl_read(inboxBuf);
-			parsePayload(inboxBuf, readBytes);
-		} while (readBytes > 0);
-
-		dn_sleep_ms(service_ms);
 	}
 
 	return (EXIT_SUCCESS);

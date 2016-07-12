@@ -34,11 +34,11 @@ typedef struct
 	// Connection
 	uint8_t socketId;
 	uint16_t networkId;
-	uint8_t joinKey[JOIN_KEY_LEN];
+	uint8_t joinKey[DN_JOIN_KEY_LEN];
 	uint32_t service_ms;
-	uint8_t payloadBuf[DEFAULT_PAYLOAD_SIZE_LIMIT];
+	uint8_t payloadBuf[DN_DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t payloadSize;
-	uint8_t destIPv6[IPv6ADDR_LEN];
+	uint8_t destIPv6[DN_IPv6ADDR_LEN];
 	uint16_t destPort;
 	dn_inbox_t inbox;
 } dn_fsm_vars_t;
@@ -105,14 +105,14 @@ bool dn_qsl_init(void)
 			dn_ipmt_reply_cb
 			);
 	
-	fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+	fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 	return TRUE;
 }
 
 bool dn_qsl_isConnected(void)
 {
 	debug("QSL: isConnected");
-	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
+	return dn_fsm_vars.state == DN_FSM_STATE_CONNECTED;
 }
 
 bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
@@ -122,22 +122,22 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 	debug("QSL: Connect");
 	switch (dn_fsm_vars.state)
 	{
-	case FSM_STATE_NOT_INITIALIZED:
+	case DN_FSM_STATE_NOT_INITIALIZED:
 		log_warn("Can't connect; not initialized");
 		// TODO: Could initialize for user?
 		return FALSE;
-	case FSM_STATE_DISCONNECTED:
+	case DN_FSM_STATE_DISCONNECTED:
 		err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
 		if (err != DN_ERR_NONE)
 		{
 			return FALSE;
 		}
 		debug("Starting connect process...");
-		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
+		fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 		break;
-	case FSM_STATE_CONNECTED:
+	case DN_FSM_STATE_CONNECTED:
 		if ((netID > 0 && netID != dn_fsm_vars.networkId) ||
-				(joinKey != NULL && memcmp(joinKey, dn_fsm_vars.joinKey, JOIN_KEY_LEN) != 0))
+				(joinKey != NULL && memcmp(joinKey, dn_fsm_vars.joinKey, DN_JOIN_KEY_LEN) != 0))
 		{
 			err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
 			if (err != DN_ERR_NONE)
@@ -145,12 +145,12 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 				return FALSE;
 			}
 			debug("New network ID and/or join key; reconnecting...");
-			fsm_enterState(FSM_STATE_RESETTING, 0);
+			fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		} else if (req_service_ms > 0 && req_service_ms != dn_fsm_vars.service_ms)
 		{
 			debug("New service request");
 			dn_fsm_vars.service_ms = req_service_ms;
-			fsm_enterState(FSM_STATE_REQ_SERVICE, 0);
+			fsm_enterState(DN_FSM_STATE_REQ_SERVICE, 0);
 		} else
 		{
 			debug("Already connected");
@@ -159,20 +159,20 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		break;
 	default:
 		log_err("Unexpected state");
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		return FALSE;
 	}
 
 	// Drive FSM until connect success/failure or timeout
-	while (dn_fsm_vars.state != FSM_STATE_CONNECTED
-			&& dn_fsm_vars.state != FSM_STATE_DISCONNECTED
-			&& !fsm_cmd_timeout(cmdStart_ms, CONNECT_TIMEOUT_S * 1000))
+	while (dn_fsm_vars.state != DN_FSM_STATE_CONNECTED
+			&& dn_fsm_vars.state != DN_FSM_STATE_DISCONNECTED
+			&& !fsm_cmd_timeout(cmdStart_ms, DN_CONNECT_TIMEOUT_S * 1000))
 	{
 		dn_watchdog_feed();
 		fsm_run();
 	}
 
-	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
+	return dn_fsm_vars.state == DN_FSM_STATE_CONNECTED;
 }
 
 bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
@@ -182,7 +182,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 	debug("QSL: Send");
 	switch (dn_fsm_vars.state)
 	{
-	case FSM_STATE_CONNECTED:
+	case DN_FSM_STATE_CONNECTED:
 		maxPayloadSize = getPayloadLimit(destPort);
 
 		if (payloadSize_B > maxPayloadSize)
@@ -193,10 +193,10 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 		// Store outbound payload and parameters
 		memcpy(dn_fsm_vars.payloadBuf, payload, payloadSize_B);
 		dn_fsm_vars.payloadSize = payloadSize_B;
-		memcpy(dn_fsm_vars.destIPv6, DEST_IP, IPv6ADDR_LEN);
-		dn_fsm_vars.destPort = (destPort > 0) ? destPort : DEFAULT_DEST_PORT;
+		memcpy(dn_fsm_vars.destIPv6, DN_DEST_IP, DN_IPv6ADDR_LEN);
+		dn_fsm_vars.destPort = (destPort > 0) ? destPort : DN_DEFAULT_DEST_PORT;
 		// Start send process
-		fsm_enterState(FSM_STATE_SENDING, 0);
+		fsm_enterState(DN_FSM_STATE_SENDING, 0);
 		break;
 	default:
 		log_warn("Can't send; not connected");
@@ -204,22 +204,22 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 	}
 
 	// Drive FSM until send success/failure or timeout
-	while (dn_fsm_vars.state == FSM_STATE_SENDING
-			&& !fsm_cmd_timeout(cmdStart_ms, SEND_TIMEOUT_MS))
+	while (dn_fsm_vars.state == DN_FSM_STATE_SENDING
+			&& !fsm_cmd_timeout(cmdStart_ms, DN_SEND_TIMEOUT_MS))
 	{
 		dn_watchdog_feed();
 		fsm_run();
 	}
 
 	// Catch send failure
-	if (dn_fsm_vars.state == FSM_STATE_SEND_FAILED)
+	if (dn_fsm_vars.state == DN_FSM_STATE_SEND_FAILED)
 	{
 		debug("Send failed");
-		fsm_enterState(FSM_STATE_CONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 		return FALSE;
 	}
 
-	return dn_fsm_vars.state == FSM_STATE_CONNECTED;
+	return dn_fsm_vars.state == DN_FSM_STATE_CONNECTED;
 }
 
 uint8_t dn_qsl_read(uint8_t* readBuffer)
@@ -236,7 +236,7 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 				dn_fsm_vars.inbox.pktSize[dn_fsm_vars.inbox.head]
 				);
 		bytesRead = dn_fsm_vars.inbox.pktSize[dn_fsm_vars.inbox.head];
-		dn_fsm_vars.inbox.head = (dn_fsm_vars.inbox.head + 1) % INBOX_SIZE;
+		dn_fsm_vars.inbox.head = (dn_fsm_vars.inbox.head + 1) % DN_INBOX_SIZE;
 		dn_fsm_vars.inbox.unreadPackets--;
 		debug("Read %u bytes from inbox", bytesRead);
 	} else
@@ -268,7 +268,7 @@ static void fsm_run(void)
 	} else
 	{
 		// Sleep to save CPU power
-		dn_sleep_ms(FSM_RUN_INTERVAL_MS);
+		dn_sleep_ms(DN_FSM_RUN_INTERVAL_MS);
 	}
 }
 
@@ -314,7 +314,7 @@ static void fsm_setReplyCallback(fsm_reply_callback cb)
 static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 {
 	uint32_t now = dn_time_ms();
-	uint16_t delay = CMD_PERIOD_MS;
+	uint16_t delay = DN_CMD_PERIOD_MS;
 	static uint32_t lastTransition = 0;
 	if (lastTransition == 0)
 		lastTransition = dn_time_ms();
@@ -326,30 +326,30 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	// Schedule default events for transition into states
 	switch (newState)
 	{
-	case FSM_STATE_PRE_JOIN:
+	case DN_FSM_STATE_PRE_JOIN:
 		fsm_scheduleEvent(delay, event_getMoteStatus);
 		break;
-	case FSM_STATE_PROMISCUOUS:
+	case DN_FSM_STATE_PROMISCUOUS:
 		fsm_scheduleEvent(delay, event_search);
 		break;
-	case FSM_STATE_JOINING:
+	case DN_FSM_STATE_JOINING:
 		fsm_scheduleEvent(delay, event_join);
 		break;
-	case FSM_STATE_REQ_SERVICE:
+	case DN_FSM_STATE_REQ_SERVICE:
 		fsm_scheduleEvent(delay, event_requestService);
 		break;
-	case FSM_STATE_RESETTING:
-		if (MOTE_DISCONNECT_BEFORE_RESET)
+	case DN_FSM_STATE_RESETTING:
+		if (DN_MOTE_DISCONNECT_BEFORE_RESET)
 			fsm_scheduleEvent(delay, event_disconnect); // More graceful
 		else
 			fsm_scheduleEvent(delay, event_reset); // Faster
 		break;
-	case FSM_STATE_SENDING:
+	case DN_FSM_STATE_SENDING:
 		event_sendTo();
 		break;
-	case FSM_STATE_SEND_FAILED:
-	case FSM_STATE_DISCONNECTED:
-	case FSM_STATE_CONNECTED:
+	case DN_FSM_STATE_SEND_FAILED:
+	case DN_FSM_STATE_DISCONNECTED:
+	case DN_FSM_STATE_CONNECTED:
 		// These states have no default entry events
 		break;
 	default:
@@ -382,16 +382,16 @@ static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
 		// Default timeout state is different while connecting vs sending
 		switch (dn_fsm_vars.state)
 		{
-		case FSM_STATE_PRE_JOIN:
-		case FSM_STATE_JOINING:
-		case FSM_STATE_REQ_SERVICE:
-		case FSM_STATE_RESETTING:
+		case DN_FSM_STATE_PRE_JOIN:
+		case DN_FSM_STATE_JOINING:
+		case DN_FSM_STATE_REQ_SERVICE:
+		case DN_FSM_STATE_RESETTING:
 			debug("Connect timeout");
-			fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+			fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 			break;
-		case FSM_STATE_SENDING:
+		case DN_FSM_STATE_SENDING:
 			debug("Send timeout");
-			fsm_enterState(FSM_STATE_SEND_FAILED, 0);
+			fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 			break;
 		default:
 			log_err("Command timeout in unexpected state: %#x", dn_fsm_vars.state);
@@ -435,25 +435,25 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		// Check if in fsm state where we expect a certain mote event
 		switch (dn_fsm_vars.state)
 		{
-		case FSM_STATE_JOINING:
-			if (notif_events->events & MOTE_EVENT_MASK_OPERATIONAL)
+		case DN_FSM_STATE_JOINING:
+			if (notif_events->events & DN_MOTE_EVENT_MASK_OPERATIONAL)
 			{
 				// Join complete
 				if (dn_fsm_vars.service_ms > 0)
 				{
-					fsm_enterState(FSM_STATE_REQ_SERVICE, 0);
+					fsm_enterState(DN_FSM_STATE_REQ_SERVICE, 0);
 				} else
 				{
-					fsm_enterState(FSM_STATE_CONNECTED, 0);
+					fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 				}
 				return;
 			}
 			break;
-		case FSM_STATE_REQ_SERVICE:
-			if (notif_events->events & MOTE_EVENT_MASK_SVC_CHANGE)
+		case DN_FSM_STATE_REQ_SERVICE:
+			if (notif_events->events & DN_MOTE_EVENT_MASK_SVC_CHANGE)
 			{
 				// Service request complete; check what we were granted
-				fsm_scheduleEvent(CMD_PERIOD_MS, event_getServiceInfo);
+				fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_getServiceInfo);
 				return;
 			}
 			break;
@@ -462,32 +462,32 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		// Check if reported mote state should trigger fsm state transition
 		switch (notif_events->state)
 		{
-		case MOTE_STATE_IDLE:
+		case DN_MOTE_STATE_IDLE:
 			switch (dn_fsm_vars.state)
 			{
-			case FSM_STATE_PRE_JOIN:
-			case FSM_STATE_JOINING:
-			case FSM_STATE_REQ_SERVICE:
-			case FSM_STATE_RESETTING:
+			case DN_FSM_STATE_PRE_JOIN:
+			case DN_FSM_STATE_JOINING:
+			case DN_FSM_STATE_REQ_SERVICE:
+			case DN_FSM_STATE_RESETTING:
 				// Restart during connect; retry
-				fsm_enterState(FSM_STATE_PRE_JOIN, 0);
+				fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 				break;
-			case FSM_STATE_CONNECTED:
-			case FSM_STATE_SENDING:
+			case DN_FSM_STATE_CONNECTED:
+			case DN_FSM_STATE_SENDING:
 				// Disconnect/reset; set state accordingly
-				fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+				fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 				break;
 			}
 			break;
-		case MOTE_STATE_OPERATIONAL:
+		case DN_MOTE_STATE_OPERATIONAL:
 			switch (dn_fsm_vars.state)
 			{
-			case FSM_STATE_PRE_JOIN:
+			case DN_FSM_STATE_PRE_JOIN:
 				/*
 				 Early (and unexpected) operational (connected to network)
 				 during connect; reset and retry
 				 */
-				fsm_enterState(FSM_STATE_RESETTING, 0);
+				fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 				break;
 			}
 			break;
@@ -497,7 +497,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		notif_receive = (dn_ipmt_receive_nt*)dn_fsm_vars.notifBuf;
 		debug("Received downstream data");
 
-		if (dn_fsm_vars.inbox.unreadPackets < INBOX_SIZE)
+		if (dn_fsm_vars.inbox.unreadPackets < DN_INBOX_SIZE)
 		{
 			// Push payload at tail of inbox
 			memcpy
@@ -507,7 +507,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 					notif_receive->payloadLen
 					);
 			dn_fsm_vars.inbox.pktSize[dn_fsm_vars.inbox.tail] = notif_receive->payloadLen;
-			dn_fsm_vars.inbox.tail = (dn_fsm_vars.inbox.tail + 1) % INBOX_SIZE;
+			dn_fsm_vars.inbox.tail = (dn_fsm_vars.inbox.tail + 1) % DN_INBOX_SIZE;
 			dn_fsm_vars.inbox.unreadPackets++;
 		} else
 		{
@@ -524,13 +524,13 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		notif_advReceived = (dn_ipmt_advReceived_nt*)dn_fsm_vars.notifBuf;
 		debug("Received network advertisement");
 		
-		if (dn_fsm_vars.state == FSM_STATE_PROMISCUOUS
-				&& dn_fsm_vars.networkId == PROMISCUOUS_NET_ID)
+		if (dn_fsm_vars.state == DN_FSM_STATE_PROMISCUOUS
+				&& dn_fsm_vars.networkId == DN_PROMISCUOUS_NET_ID)
 		{
 			debug("Saving network ID: %#.4x (%u)",
 					notif_advReceived->netId, notif_advReceived->netId);
 			dn_fsm_vars.networkId = notif_advReceived->netId;
-			fsm_scheduleEvent(CMD_PERIOD_MS, event_setNetworkId);
+			fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_setNetworkId);
 		}
 		
 		break;
@@ -574,16 +574,16 @@ static void event_response_timeout(void)
 
 	switch (dn_fsm_vars.state)
 	{
-	case FSM_STATE_PRE_JOIN:
-	case FSM_STATE_JOINING:
-	case FSM_STATE_REQ_SERVICE:
-	case FSM_STATE_RESETTING:
+	case DN_FSM_STATE_PRE_JOIN:
+	case DN_FSM_STATE_JOINING:
+	case DN_FSM_STATE_REQ_SERVICE:
+	case DN_FSM_STATE_RESETTING:
 		// Response timeout during connect; retry
-		fsm_enterState(FSM_STATE_PRE_JOIN, 0);
+		fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 		break;
-	case FSM_STATE_SENDING:
+	case DN_FSM_STATE_SENDING:
 		// Response timeout during send; fail (TODO: Try again instead?)
-		fsm_enterState(FSM_STATE_SEND_FAILED, 0);
+		fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 		break;
 	default:
 		log_err("Response timeout in unexpected state: %#x", dn_fsm_vars.state);
@@ -610,7 +610,7 @@ static void event_reset(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_reset(void)
@@ -627,13 +627,13 @@ static void reply_reset(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Mote soft-reset initiated");
 		// Will wait for notification of reboot
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -660,7 +660,7 @@ static void event_disconnect(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_disconnect(void)
@@ -677,17 +677,17 @@ static void reply_disconnect(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Mote disconnect initiated");
 		// Will wait for notification of reboot
 		break;
-	case RC_INVALID_STATE:
+	case DN_RC_INVALID_STATE:
 		debug("The mote is in an invalid state to disconnect; resetting");
-		fsm_scheduleEvent(CMD_PERIOD_MS, event_reset);
+		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_reset);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_scheduleEvent(CMD_PERIOD_MS, event_reset);
+		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_reset);
 		break;
 	}
 }
@@ -713,7 +713,7 @@ static void event_getMoteStatus(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_getMoteStatus(void)
@@ -731,14 +731,14 @@ static void reply_getMoteStatus(void)
 	// Choose next event or state transition
 	switch (reply->state)
 	{
-	case MOTE_STATE_IDLE:
-		fsm_scheduleEvent(CMD_PERIOD_MS, event_openSocket);
+	case DN_MOTE_STATE_IDLE:
+		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_openSocket);
 		break;
-	case MOTE_STATE_OPERATIONAL:
-		fsm_enterState(FSM_STATE_RESETTING, 0);
+	case DN_MOTE_STATE_OPERATIONAL:
+		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
-		fsm_enterState(FSM_STATE_RESETTING, 0);
+		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	}
 }
@@ -760,12 +760,12 @@ static void event_openSocket(void)
 	// Issue mote API command
 	dn_ipmt_openSocket
 			(
-			PROTOCOL_TYPE_UDP,
+			DN_PROTOCOL_TYPE_UDP,
 			(dn_ipmt_openSocket_rpt*)dn_fsm_vars.replyBuf
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_openSocket(void)
@@ -782,19 +782,19 @@ static void reply_openSocket(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Socket %d opened successfully", reply->socketId);
 		dn_fsm_vars.socketId = reply->socketId;
-		fsm_scheduleEvent(CMD_PERIOD_MS, event_bindSocket);
+		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_bindSocket);
 		break;
-	case RC_NO_RESOURCES:
+	case DN_RC_NO_RESOURCES:
 		debug("Couldn't create socket due to resource availability");
 		// Own state for disconnecting?
-		fsm_enterState(FSM_STATE_RESETTING, 0);
+		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -816,12 +816,12 @@ static void event_bindSocket(void)
 	dn_ipmt_bindSocket
 			(
 			dn_fsm_vars.socketId,
-			SRC_PORT,
+			DN_SRC_PORT,
 			(dn_ipmt_bindSocket_rpt*)dn_fsm_vars.replyBuf
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_bindSocket(void)
@@ -838,21 +838,21 @@ static void reply_bindSocket(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Socket bound successfully");
-		fsm_scheduleEvent(CMD_PERIOD_MS, event_setJoinKey);
+		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_setJoinKey);
 		break;
-	case RC_BUSY:
+	case DN_RC_BUSY:
 		debug("Port already bound");
-		fsm_enterState(FSM_STATE_RESETTING, 0);
+		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
-	case RC_NOT_FOUND:
+	case DN_RC_NOT_FOUND:
 		debug("Invalid socket ID");
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -878,7 +878,7 @@ static void event_setJoinKey(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_setJoinKey(void)
@@ -895,12 +895,12 @@ static void reply_setJoinKey(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Join key set");
-		if (dn_fsm_vars.networkId == PROMISCUOUS_NET_ID)
+		if (dn_fsm_vars.networkId == DN_PROMISCUOUS_NET_ID)
 		{
 			// Promiscuous netID set; search for new first
-			fsm_enterState(FSM_STATE_PROMISCUOUS, 0);
+			fsm_enterState(DN_FSM_STATE_PROMISCUOUS, 0);
 			/*
 			 As of version 1.4.x, a network ID of 0xFFFF can be used to indicate
 			 that the mote should join the first network heard. Thus, searching
@@ -908,16 +908,16 @@ static void reply_setJoinKey(void)
 			*/
 		} else
 		{
-			fsm_scheduleEvent(CMD_PERIOD_MS, event_setNetworkId);
+			fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_setNetworkId);
 		}
 		break;
-	case RC_WRITE_FAIL:
+	case DN_RC_WRITE_FAIL:
 		debug("Could not write the key to storage");
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -942,7 +942,7 @@ static void event_setNetworkId(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_setNetworkId(void)
@@ -959,17 +959,17 @@ static void reply_setNetworkId(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Network ID set");
-		fsm_enterState(FSM_STATE_JOINING, 0);
+		fsm_enterState(DN_FSM_STATE_JOINING, 0);
 		break;
-	case RC_WRITE_FAIL:
+	case DN_RC_WRITE_FAIL:
 		debug("Could not write the network ID to storage");
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -996,7 +996,7 @@ static void event_search(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_search(void)
@@ -1013,17 +1013,17 @@ static void reply_search(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Searching for network advertisements");
 		// Will wait for notification of advertisement received
 		break;
-	case RC_INVALID_STATE:
+	case DN_RC_INVALID_STATE:
 		debug("The mote is in an invalid state to start searching");
-		fsm_enterState(FSM_STATE_RESETTING, 0);
+		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -1051,7 +1051,7 @@ static void event_join(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_join(void)
@@ -1068,21 +1068,21 @@ static void reply_join(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Join operation started");
 		// Will wait for join complete notification (operational event)
 		break;
-	case RC_INVALID_STATE:
+	case DN_RC_INVALID_STATE:
 		debug("The mote is in an invalid state to start join operation");
-		fsm_enterState(FSM_STATE_RESETTING, 0);
+		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
-	case RC_INCOMPLETE_JOIN_INFO:
+	case DN_RC_INCOMPLETE_JOIN_INFO:
 		debug("Incomplete configuration to start joining");
-		fsm_enterState(FSM_STATE_RESETTING, 0);
+		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -1104,14 +1104,14 @@ static void event_requestService(void)
 	// Issue mote API command
 	dn_ipmt_requestService
 			(
-			SERVICE_ADDRESS,
-			SERVICE_TYPE_BW,
+			DN_SERVICE_ADDRESS,
+			DN_SERVICE_TYPE_BW,
 			dn_fsm_vars.service_ms,
 			(dn_ipmt_requestService_rpt*)dn_fsm_vars.replyBuf
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_requestService(void)
@@ -1128,13 +1128,13 @@ static void reply_requestService(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Service request accepted");
 		// Will wait for svcChanged notification
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -1156,13 +1156,13 @@ static void event_getServiceInfo(void)
 	// Issue mote API command
 	dn_ipmt_getServiceInfo
 			(
-			SERVICE_ADDRESS,
-			SERVICE_TYPE_BW,
+			DN_SERVICE_ADDRESS,
+			DN_SERVICE_TYPE_BW,
 			(dn_ipmt_getServiceInfo_rpt*)dn_fsm_vars.replyBuf
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_getServiceInfo(void)
@@ -1179,8 +1179,8 @@ static void reply_getServiceInfo(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
-		if (reply->state == SERVICE_STATE_COMPLETED)
+	case DN_RC_OK:
+		if (reply->state == DN_SERVICE_STATE_COMPLETED)
 		{
 			if (reply->value <= dn_fsm_vars.service_ms)
 			{
@@ -1190,16 +1190,16 @@ static void reply_getServiceInfo(void)
 				log_warn("Only granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
 				// TODO: Should maybe fail?
 			}
-			fsm_enterState(FSM_STATE_CONNECTED, 0);
+			fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 		} else
 		{
 			debug("Service request still pending");
-			fsm_scheduleEvent(CMD_PERIOD_MS, event_getServiceInfo);
+			fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_getServiceInfo);
 		}
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_DISCONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -1224,9 +1224,9 @@ static void event_sendTo(void)
 			dn_fsm_vars.socketId,
 			dn_fsm_vars.destIPv6,
 			dn_fsm_vars.destPort,
-			SERVICE_TYPE_BW,
-			PACKET_PRIORITY_MEDIUM,
-			PACKET_ID_NO_NOTIF,
+			DN_SERVICE_TYPE_BW,
+			DN_PACKET_PRIORITY_MEDIUM,
+			DN_PACKET_ID_NO_NOTIF,
 			dn_fsm_vars.payloadBuf,
 			dn_fsm_vars.payloadSize,
 			(dn_ipmt_sendTo_rpt*)dn_fsm_vars.replyBuf
@@ -1234,11 +1234,11 @@ static void event_sendTo(void)
 	if (err != DN_ERR_NONE)
 	{
 		debug("Send error: %u", err);
-		fsm_enterState(FSM_STATE_SEND_FAILED, 0);
+		fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 	}
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
 }
 
 static void reply_sendTo(void)
@@ -1255,17 +1255,17 @@ static void reply_sendTo(void)
 	// Choose next event or state transition
 	switch (reply->RC)
 	{
-	case RC_OK:
+	case DN_RC_OK:
 		debug("Packet was queued up for transmission");
-		fsm_enterState(FSM_STATE_CONNECTED, 0);
+		fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 		break;
-	case RC_NO_RESOURCES:
+	case DN_RC_NO_RESOURCES:
 		debug("No queue space to accept the packet");
-		fsm_enterState(FSM_STATE_SEND_FAILED, 0);
+		fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(FSM_STATE_SEND_FAILED, 0);
+		fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 		break;
 	}
 }
@@ -1277,8 +1277,8 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t
 	if (netID == 0)
 	{
 		debug("No network ID given; using default");
-		dn_fsm_vars.networkId = DEFAULT_NET_ID;
-	} else if (netID == PROMISCUOUS_NET_ID)
+		dn_fsm_vars.networkId = DN_DEFAULT_NET_ID;
+	} else if (netID == DN_PROMISCUOUS_NET_ID)
 	{
 		debug("Promiscuous network ID given; will search for and join first network advertised");
 		dn_fsm_vars.networkId = netID;
@@ -1290,10 +1290,10 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t
 	if (joinKey == NULL)
 	{
 		debug("No join key given; using default");
-		memcpy(dn_fsm_vars.joinKey, DEFAULT_JOIN_KEY, JOIN_KEY_LEN);
+		memcpy(dn_fsm_vars.joinKey, DN_DEFAULT_JOIN_KEY, DN_JOIN_KEY_LEN);
 	} else
 	{
-		memcpy(dn_fsm_vars.joinKey, joinKey, JOIN_KEY_LEN);
+		memcpy(dn_fsm_vars.joinKey, joinKey, DN_JOIN_KEY_LEN);
 	}
 
 	dn_fsm_vars.service_ms = req_service_ms;
@@ -1303,25 +1303,25 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t
 
 static uint8_t getPayloadLimit(uint16_t destPort)
 {
-	bool destIsF0Bx = (destPort >= WELL_KNOWN_PORT_1 && destPort <= WELL_KNOWN_PORT_8);
-	bool srcIsF0Bx = (SRC_PORT >= WELL_KNOWN_PORT_1 && SRC_PORT <= WELL_KNOWN_PORT_8);
-	int8_t destIsMng = memcmp(DEST_IP, DEFAULT_DEST_IP, IPv6ADDR_LEN);
+	bool destIsF0Bx = (destPort >= DN_WELL_KNOWN_PORT_1 && destPort <= DN_WELL_KNOWN_PORT_8);
+	bool srcIsF0Bx = (DN_SRC_PORT >= DN_WELL_KNOWN_PORT_1 && DN_SRC_PORT <= DN_WELL_KNOWN_PORT_8);
+	int8_t destIsMng = memcmp(DN_DEST_IP, DN_DEFAULT_DEST_IP, DN_IPv6ADDR_LEN);
 	
 	if (destIsMng == 0)
 	{
 		if (destIsF0Bx && srcIsF0Bx)
-			return PAYLOAD_SIZE_LIMIT_MNG_HIGH;
+			return DN_PAYLOAD_SIZE_LIMIT_MNG_HIGH;
 		else if (destIsF0Bx || srcIsF0Bx)
-			return PAYLOAD_SIZE_LIMIT_MNG_MED;
+			return DN_PAYLOAD_SIZE_LIMIT_MNG_MED;
 		else
-			return PAYLOAD_SIZE_LIMIT_MNG_LOW;
+			return DN_PAYLOAD_SIZE_LIMIT_MNG_LOW;
 	} else
 	{
 		if (destIsF0Bx && srcIsF0Bx)
-			return PAYLOAD_SIZE_LIMIT_IP_HIGH;
+			return DN_PAYLOAD_SIZE_LIMIT_IP_HIGH;
 		else if (destIsF0Bx || srcIsF0Bx)
-			return PAYLOAD_SIZE_LIMIT_IP_MED;
+			return DN_PAYLOAD_SIZE_LIMIT_IP_MED;
 		else
-			return PAYLOAD_SIZE_LIMIT_IP_LOW;
+			return DN_PAYLOAD_SIZE_LIMIT_IP_LOW;
 	}
 }

@@ -19,8 +19,8 @@
 
 //=========================== defines =========================================
 
-#define DEST_IP		DEFAULT_DEST_IP
-#define SRC_PORT	DEFAULT_SRC_PORT
+#define DN_DEST_IP	DN_DEFAULT_DEST_IP
+#define DN_SRC_PORT	DN_DEFAULT_SRC_PORT
 
 //=========================== typedef =========================================
 
