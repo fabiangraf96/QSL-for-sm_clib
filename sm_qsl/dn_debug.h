@@ -7,6 +7,7 @@
 /* 
  * File:   dn_debug.h
  * Author: jhbr
+ * Kudos:  http://c.learncodethehardway.org/book/ex20.html
  *
  * Created on 24. juni 2016, 13:41
  */
@@ -17,6 +18,10 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+
+/*
+ TODO: Possible to include in final QSL? Cut away dependencies?
+ */
 
 //#define NDEBUG
 

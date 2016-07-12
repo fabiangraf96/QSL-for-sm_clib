@@ -250,11 +250,16 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 
 //========== FSM
 
+//===== run
+
+/**
+ Check if an event is scheduled and run it if due.
+ */
 static void fsm_run(void)
 {
 	if (dn_fsm_vars.fsmDelay_ms > 0 && (dn_time_ms() - dn_fsm_vars.fsmEventScheduled_ms > dn_fsm_vars.fsmDelay_ms))
 	{
-		// Scheduled event is due
+		// Scheduled event is due; execute it
 		dn_fsm_vars.fsmDelay_ms = 0;
 		if (dn_fsm_vars.fsmCb != NULL)
 		{
@@ -267,6 +272,11 @@ static void fsm_run(void)
 	}
 }
 
+//===== scheduleEvent
+
+/**
+ Schedule function to be called after a given delay.
+ */
 static void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
 {
 	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms(); // TODO: Move to each cmd?
@@ -274,25 +284,42 @@ static void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
 	dn_fsm_vars.fsmCb = cb;
 }
 
+//===== cancelEvent
+
+/**
+ Cancel currently scheduled event.
+ */
 static void fsm_cancelEvent(void)
 {
 	dn_fsm_vars.fsmDelay_ms = 0;
 	dn_fsm_vars.fsmCb = NULL;
 }
 
+//===== setReplyCallback
+
+/**
+ Set the callback function that the C Library will execute when the next reply
+ is received and the reply buffer is ready to be parsed.
+ */
 static void fsm_setReplyCallback(fsm_reply_callback cb)
 {
 	dn_fsm_vars.replyCb = cb;
 }
 
+//===== setReplyCallback
+
+/**
+ Transition FSM to new state and schedule any default entry events.
+ */
 static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 {
-	static uint32_t lastTransition = 0;
 	uint32_t now = dn_time_ms();
 	uint16_t delay = CMD_PERIOD_MS;
-
+	static uint32_t lastTransition = 0;
 	if (lastTransition == 0)
 		lastTransition = dn_time_ms();
+	
+	// Use default delay if none given
 	if (spesificDelay > 0)
 		delay = spesificDelay;
 
@@ -324,16 +351,22 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 		// These states have no default entry events
 		break;
 	default:
-		log_warn("Attempt at entering unexpected state %#x", newState);
+		log_warn("Attempt at entering unexpected state %#.2x", newState);
 		return;
 	}
 
-	debug("FSM state transition: %#x --> %#x (%u ms)",
+	debug("FSM state transition: %#.2x --> %#.2x (%u ms)",
 			dn_fsm_vars.state, newState, now - lastTransition);
 	lastTransition = now;
 	dn_fsm_vars.state = newState;
 }
 
+//===== cmdTimeout
+
+/**
+ Correctly abort the current API command if time passed since the given start
+ has exceeded the given timeout.
+ */
 static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
 {
 	bool timeout = (dn_time_ms() - cmdStart_ms) > cmdTimeout_ms;
@@ -385,7 +418,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	//dn_ipmt_txDone_nt* notif_txDone;
 	dn_ipmt_advReceived_nt* notif_advReceived;
 
-	debug("Got notification: cmdId; %#x (%u), subCmdId; %#x (%u)",
+	debug("Got notification: cmdId; %#.2x (%u), subCmdId; %#.2x (%u)",
 			cmdId, cmdId, subCmdId, subCmdId);
 
 	switch (cmdId)
@@ -395,7 +428,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		break;
 	case CMDID_EVENTS:
 		notif_events = (dn_ipmt_events_nt*)dn_fsm_vars.notifBuf;
-		debug("State: %#x | Events: %#x", notif_events->state, notif_events->events);
+		debug("State: %#.2x | Events: %#.4x", notif_events->state, notif_events->events);
 
 		// Check if in fsm state where we expect a certain mote event
 		switch (dn_fsm_vars.state)
@@ -492,7 +525,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		if (dn_fsm_vars.state == FSM_STATE_PROMISCUOUS
 				&& dn_fsm_vars.networkId == PROMISCUOUS_NET_ID)
 		{
-			debug("Saving network ID: %#x (%u)",
+			debug("Saving network ID: %#.4x (%u)",
 					notif_advReceived->netId, notif_advReceived->netId);
 			dn_fsm_vars.networkId = notif_advReceived->netId;
 			fsm_scheduleEvent(CMD_PERIOD_MS, event_setNetworkId);
@@ -514,7 +547,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
  */
 static void dn_ipmt_reply_cb(uint8_t cmdId)
 {
-	debug("Got reply: cmdId; %#x (%u)", cmdId, cmdId);
+	debug("Got reply: cmdId; %#.2x (%u)", cmdId, cmdId);
 	if (dn_fsm_vars.replyCb == NULL)
 	{
 		debug("Reply callback empty");
@@ -777,7 +810,7 @@ static void event_bindSocket(void)
 	dn_ipmt_bindSocket
 			(
 			dn_fsm_vars.socketId,
-			INBOX_PORT,
+			SRC_PORT,
 			(dn_ipmt_bindSocket_rpt*)dn_fsm_vars.replyBuf
 			);
 
@@ -935,6 +968,14 @@ static void reply_setNetworkId(void)
 	}
 }
 
+//===== search
+
+/**
+ Tells the mote to start listening for network advertisements. The mote will
+ then report the network ID (among other things) of any advertisements heard.
+ Upon a successful reply, the FSM will wait for an advReceived notification,
+ before attempting to join the reported network.
+ */
 static void event_search(void)
 {
 	debug("Search");
@@ -1257,9 +1298,9 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t
 static uint8_t getPayloadLimit(uint16_t destPort)
 {
 	bool destIsF0Bx = (destPort >= WELL_KNOWN_PORT_1 && destPort <= WELL_KNOWN_PORT_8);
-	bool srcIsF0Bx = (INBOX_PORT >= WELL_KNOWN_PORT_1 && INBOX_PORT <= WELL_KNOWN_PORT_8);
+	bool srcIsF0Bx = (SRC_PORT >= WELL_KNOWN_PORT_1 && SRC_PORT <= WELL_KNOWN_PORT_8);
 	int8_t destIsMng = memcmp(DEST_IP, DEFAULT_DEST_IP, IPv6ADDR_LEN);
-
+	
 	if (destIsMng == 0)
 	{
 		if (destIsF0Bx && srcIsF0Bx)
