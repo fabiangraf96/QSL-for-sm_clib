@@ -105,8 +105,8 @@
 
 //=========================== typedef =========================================
 
-typedef void (*fsm_timer_callback)(void);
-typedef void (*fsm_reply_callback)(void);
+typedef void (*dn_fsm_timer_cbt)(void);
+typedef void (*dn_fsm_reply_cbt)(void);
 
 typedef struct
 {

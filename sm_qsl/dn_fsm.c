@@ -27,8 +27,8 @@ typedef struct
 	uint16_t fsmDelay_ms;
 	uint8_t state;
 	// C Library API
-	fsm_reply_callback replyCb;
-	fsm_timer_callback fsmCb;
+	dn_fsm_reply_cbt replyCb;
+	dn_fsm_timer_cbt fsmCb;
 	uint8_t replyBuf[MAX_FRAME_LENGTH];
 	uint8_t notifBuf[MAX_FRAME_LENGTH];
 	// Connection
@@ -48,40 +48,40 @@ static dn_fsm_vars_t dn_fsm_vars;
 
 //=========================== prototypes ======================================
 // FSM
-static void fsm_run(void);
-static void fsm_scheduleEvent(uint16_t delay, fsm_timer_callback cb);
-static void fsm_cancelEvent(void);
-static void fsm_setReplyCallback(fsm_reply_callback cb);
-static void fsm_enterState(uint8_t newState, uint16_t spesificDelay);
-static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms);
+static void dn_fsm_run(void);
+static void dn_fsm_scheduleEvent(uint16_t delay, dn_fsm_timer_cbt cb);
+static void dn_fsm_cancelEvent(void);
+static void dn_fsm_setReplyCallback(dn_fsm_reply_cbt cb);
+static void dn_fsm_enterState(uint8_t newState, uint16_t spesificDelay);
+static bool dn_fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms);
 // C Library API
 static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId);
 static void dn_ipmt_reply_cb(uint8_t cmdId);
-static void event_response_timeout(void); // TODO: Better prefix?
-static void event_reset(void);
-static void reply_reset(void);
-static void event_disconnect(void);
-static void reply_disconnect(void);
-static void event_getMoteStatus(void);
-static void reply_getMoteStatus(void);
-static void event_openSocket(void);
-static void reply_openSocket(void);
-static void event_bindSocket(void);
-static void reply_bindSocket(void);
-static void event_setJoinKey(void);
-static void reply_setJoinKey(void);
-static void event_setNetworkId(void);
-static void reply_setNetworkId(void);
-static void event_search(void);
-static void reply_search(void);
-static void event_join(void);
-static void reply_join(void);
-static void event_requestService(void);
-static void reply_requestService(void);
-static void event_getServiceInfo(void);
-static void reply_getServiceInfo(void);
-static void event_sendTo(void);
-static void reply_sendTo(void);
+static void dn_event_responseTimeout(void);
+static void dn_event_reset(void);
+static void dn_reply_reset(void);
+static void dn_event_disconnect(void);
+static void dn_reply_disconnect(void);
+static void dn_event_getMoteStatus(void);
+static void dn_reply_getMoteStatus(void);
+static void dn_event_openSocket(void);
+static void dn_reply_openSocket(void);
+static void dn_event_bindSocket(void);
+static void dn_reply_bindSocket(void);
+static void dn_event_setJoinKey(void);
+static void dn_reply_setJoinKey(void);
+static void dn_event_setNetworkId(void);
+static void dn_reply_setNetworkId(void);
+static void dn_event_search(void);
+static void dn_reply_search(void);
+static void dn_event_join(void);
+static void dn_reply_join(void);
+static void dn_event_requestService(void);
+static void dn_reply_requestService(void);
+static void dn_event_getServiceInfo(void);
+static void dn_reply_getServiceInfo(void);
+static void dn_event_sendTo(void);
+static void dn_reply_sendTo(void);
 // helpers
 static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms);
 static uint8_t getPayloadLimit(uint16_t destPort);
@@ -105,7 +105,7 @@ bool dn_qsl_init(void)
 			dn_ipmt_reply_cb
 			);
 	
-	fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+	dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 	return TRUE;
 }
 
@@ -133,7 +133,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 			return FALSE;
 		}
 		debug("Starting connect process...");
-		fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
+		dn_fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 		break;
 	case DN_FSM_STATE_CONNECTED:
 		if ((netID > 0 && netID != dn_fsm_vars.networkId) ||
@@ -145,12 +145,12 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 				return FALSE;
 			}
 			debug("New network ID and/or join key; reconnecting...");
-			fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+			dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		} else if (req_service_ms > 0 && req_service_ms != dn_fsm_vars.service_ms)
 		{
 			debug("New service request");
 			dn_fsm_vars.service_ms = req_service_ms;
-			fsm_enterState(DN_FSM_STATE_REQ_SERVICE, 0);
+			dn_fsm_enterState(DN_FSM_STATE_REQ_SERVICE, 0);
 		} else
 		{
 			debug("Already connected");
@@ -159,17 +159,17 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		break;
 	default:
 		log_err("Unexpected state");
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		return FALSE;
 	}
 
 	// Drive FSM until connect success/failure or timeout
 	while (dn_fsm_vars.state != DN_FSM_STATE_CONNECTED
 			&& dn_fsm_vars.state != DN_FSM_STATE_DISCONNECTED
-			&& !fsm_cmd_timeout(cmdStart_ms, DN_CONNECT_TIMEOUT_S * 1000))
+			&& !dn_fsm_cmd_timeout(cmdStart_ms, DN_CONNECT_TIMEOUT_S * 1000))
 	{
 		dn_watchdog_feed();
-		fsm_run();
+		dn_fsm_run();
 	}
 
 	return dn_fsm_vars.state == DN_FSM_STATE_CONNECTED;
@@ -196,7 +196,7 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 		memcpy(dn_fsm_vars.destIPv6, DN_DEST_IP, DN_IPv6ADDR_LEN);
 		dn_fsm_vars.destPort = (destPort > 0) ? destPort : DN_DEFAULT_DEST_PORT;
 		// Start send process
-		fsm_enterState(DN_FSM_STATE_SENDING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_SENDING, 0);
 		break;
 	default:
 		log_warn("Can't send; not connected");
@@ -205,17 +205,17 @@ bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 
 	// Drive FSM until send success/failure or timeout
 	while (dn_fsm_vars.state == DN_FSM_STATE_SENDING
-			&& !fsm_cmd_timeout(cmdStart_ms, DN_SEND_TIMEOUT_MS))
+			&& !dn_fsm_cmd_timeout(cmdStart_ms, DN_SEND_TIMEOUT_MS))
 	{
 		dn_watchdog_feed();
-		fsm_run();
+		dn_fsm_run();
 	}
 
 	// Catch send failure
 	if (dn_fsm_vars.state == DN_FSM_STATE_SEND_FAILED)
 	{
 		debug("Send failed");
-		fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 		return FALSE;
 	}
 
@@ -255,7 +255,7 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 /**
  Check if an event is scheduled and run it if due.
  */
-static void fsm_run(void)
+static void dn_fsm_run(void)
 {
 	if (dn_fsm_vars.fsmDelay_ms > 0 && (dn_time_ms() - dn_fsm_vars.fsmEventScheduled_ms > dn_fsm_vars.fsmDelay_ms))
 	{
@@ -277,7 +277,7 @@ static void fsm_run(void)
 /**
  Schedule function to be called after a given delay.
  */
-static void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
+static void dn_fsm_scheduleEvent(uint16_t delay_ms, dn_fsm_timer_cbt cb)
 {
 	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms(); // TODO: Move to each cmd?
 	dn_fsm_vars.fsmDelay_ms = delay_ms;
@@ -289,7 +289,7 @@ static void fsm_scheduleEvent(uint16_t delay_ms, fsm_timer_callback cb)
 /**
  Cancel currently scheduled event.
  */
-static void fsm_cancelEvent(void)
+static void dn_fsm_cancelEvent(void)
 {
 	dn_fsm_vars.fsmDelay_ms = 0;
 	dn_fsm_vars.fsmCb = NULL;
@@ -301,7 +301,7 @@ static void fsm_cancelEvent(void)
  Set the callback function that the C Library will execute when the next reply
  is received and the reply buffer is ready to be parsed.
  */
-static void fsm_setReplyCallback(fsm_reply_callback cb)
+static void dn_fsm_setReplyCallback(dn_fsm_reply_cbt cb)
 {
 	dn_fsm_vars.replyCb = cb;
 }
@@ -311,7 +311,7 @@ static void fsm_setReplyCallback(fsm_reply_callback cb)
 /**
  Transition FSM to new state and schedule any default entry events.
  */
-static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
+static void dn_fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 {
 	uint32_t now = dn_time_ms();
 	uint16_t delay = DN_CMD_PERIOD_MS;
@@ -327,25 +327,25 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	switch (newState)
 	{
 	case DN_FSM_STATE_PRE_JOIN:
-		fsm_scheduleEvent(delay, event_getMoteStatus);
+		dn_fsm_scheduleEvent(delay, dn_event_getMoteStatus);
 		break;
 	case DN_FSM_STATE_PROMISCUOUS:
-		fsm_scheduleEvent(delay, event_search);
+		dn_fsm_scheduleEvent(delay, dn_event_search);
 		break;
 	case DN_FSM_STATE_JOINING:
-		fsm_scheduleEvent(delay, event_join);
+		dn_fsm_scheduleEvent(delay, dn_event_join);
 		break;
 	case DN_FSM_STATE_REQ_SERVICE:
-		fsm_scheduleEvent(delay, event_requestService);
+		dn_fsm_scheduleEvent(delay, dn_event_requestService);
 		break;
 	case DN_FSM_STATE_RESETTING:
 		if (DN_MOTE_DISCONNECT_BEFORE_RESET)
-			fsm_scheduleEvent(delay, event_disconnect); // More graceful
+			dn_fsm_scheduleEvent(delay, dn_event_disconnect); // More graceful
 		else
-			fsm_scheduleEvent(delay, event_reset); // Faster
+			dn_fsm_scheduleEvent(delay, dn_event_reset); // Faster
 		break;
 	case DN_FSM_STATE_SENDING:
-		event_sendTo();
+		dn_event_sendTo();
 		break;
 	case DN_FSM_STATE_SEND_FAILED:
 	case DN_FSM_STATE_DISCONNECTED:
@@ -369,7 +369,7 @@ static void fsm_enterState(uint8_t newState, uint16_t spesificDelay)
  Correctly abort the current API command if time passed since the given start
  has exceeded the given timeout.
  */
-static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
+static bool dn_fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
 {
 	bool timeout = (dn_time_ms() - cmdStart_ms) > cmdTimeout_ms;
 	if (timeout)
@@ -377,7 +377,7 @@ static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
 		// Cancel any ongoing transmission or scheduled event and reset reply cb
 		dn_ipmt_cancelTx();
 		dn_fsm_vars.replyCb = NULL;
-		fsm_cancelEvent();
+		dn_fsm_cancelEvent();
 
 		// Default timeout state is different while connecting vs sending
 		switch (dn_fsm_vars.state)
@@ -387,11 +387,11 @@ static bool fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
 		case DN_FSM_STATE_REQ_SERVICE:
 		case DN_FSM_STATE_RESETTING:
 			debug("Connect timeout");
-			fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+			dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 			break;
 		case DN_FSM_STATE_SENDING:
 			debug("Send timeout");
-			fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
+			dn_fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 			break;
 		default:
 			log_err("Command timeout in unexpected state: %#x", dn_fsm_vars.state);
@@ -441,10 +441,10 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 				// Join complete
 				if (dn_fsm_vars.service_ms > 0)
 				{
-					fsm_enterState(DN_FSM_STATE_REQ_SERVICE, 0);
+					dn_fsm_enterState(DN_FSM_STATE_REQ_SERVICE, 0);
 				} else
 				{
-					fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
+					dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 				}
 				return;
 			}
@@ -453,7 +453,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			if (notif_events->events & DN_MOTE_EVENT_MASK_SVC_CHANGE)
 			{
 				// Service request complete; check what we were granted
-				fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_getServiceInfo);
+				dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_getServiceInfo);
 				return;
 			}
 			break;
@@ -470,12 +470,12 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			case DN_FSM_STATE_REQ_SERVICE:
 			case DN_FSM_STATE_RESETTING:
 				// Restart during connect; retry
-				fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
+				dn_fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 				break;
 			case DN_FSM_STATE_CONNECTED:
 			case DN_FSM_STATE_SENDING:
 				// Disconnect/reset; set state accordingly
-				fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+				dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 				break;
 			}
 			break;
@@ -487,7 +487,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 				 Early (and unexpected) operational (connected to network)
 				 during connect; reset and retry
 				 */
-				fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+				dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 				break;
 			}
 			break;
@@ -530,7 +530,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			debug("Saving network ID: %#.4x (%u)",
 					notif_advReceived->netId, notif_advReceived->netId);
 			dn_fsm_vars.networkId = notif_advReceived->netId;
-			fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_setNetworkId);
+			dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_setNetworkId);
 		}
 		
 		break;
@@ -564,7 +564,7 @@ static void dn_ipmt_reply_cb(uint8_t cmdId)
  This event is scheduled after each mote API command is sent, effectively
  placing a timeout for the mote to reply.
  */
-static void event_response_timeout(void)
+static void dn_event_responseTimeout(void)
 {
 	debug("Response timeout");
 
@@ -579,11 +579,11 @@ static void event_response_timeout(void)
 	case DN_FSM_STATE_REQ_SERVICE:
 	case DN_FSM_STATE_RESETTING:
 		// Response timeout during connect; retry
-		fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
+		dn_fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 		break;
 	case DN_FSM_STATE_SENDING:
 		// Response timeout during send; fail (TODO: Try again instead?)
-		fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 		break;
 	default:
 		log_err("Response timeout in unexpected state: %#x", dn_fsm_vars.state);
@@ -597,11 +597,11 @@ static void event_response_timeout(void)
  Initiates a soft-reset of the mote. Its reply simply checks that
  the command was accepted, as the FSM will wait for the ensuing boot event.
  */
-static void event_reset(void)
+static void dn_event_reset(void)
 {
 	debug("Reset");
 	// Arm reply callback
-	fsm_setReplyCallback(reply_reset);
+	dn_fsm_setReplyCallback(dn_reply_reset);
 
 	// Issue mote API command
 	dn_ipmt_reset
@@ -610,16 +610,16 @@ static void event_reset(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_reset(void)
+static void dn_reply_reset(void)
 {
 	dn_ipmt_reset_rpt* reply;
 	debug("Reset reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_reset_rpt*)dn_fsm_vars.replyBuf;
@@ -633,7 +633,7 @@ static void reply_reset(void)
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -646,12 +646,12 @@ static void reply_reset(void)
  neighbors of its imminent soft-reset. If the reply is anything but success,
  it will schedule a simple reset event instead.
  */
-static void event_disconnect(void)
+static void dn_event_disconnect(void)
 {
 	debug("Disconnect");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_disconnect);
+	dn_fsm_setReplyCallback(dn_reply_disconnect);
 
 	// Issue mote API command
 	dn_ipmt_disconnect
@@ -660,16 +660,16 @@ static void event_disconnect(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_disconnect(void)
+static void dn_reply_disconnect(void)
 {
 	dn_ipmt_disconnect_rpt* reply;
 	debug("Disconnect reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_disconnect_rpt*)dn_fsm_vars.replyBuf;
@@ -683,11 +683,11 @@ static void reply_disconnect(void)
 		break;
 	case DN_RC_INVALID_STATE:
 		debug("The mote is in an invalid state to disconnect; resetting");
-		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_reset);
+		dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_reset);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_reset);
+		dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_reset);
 		break;
 	}
 }
@@ -699,12 +699,12 @@ static void reply_disconnect(void)
  mote state to decide whether or not it is ready to proceed with pre-join
  configurations or if a reset is needed first.
  */
-static void event_getMoteStatus(void)
+static void dn_event_getMoteStatus(void)
 {
 	debug("Mote status");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_getMoteStatus);
+	dn_fsm_setReplyCallback(dn_reply_getMoteStatus);
 
 	// Issue mote API command
 	dn_ipmt_getParameter_moteStatus
@@ -713,16 +713,16 @@ static void event_getMoteStatus(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_getMoteStatus(void)
+static void dn_reply_getMoteStatus(void)
 {
 	dn_ipmt_getParameter_moteStatus_rpt* reply;
 	debug("Mote status reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_getParameter_moteStatus_rpt*)dn_fsm_vars.replyBuf;
@@ -732,13 +732,13 @@ static void reply_getMoteStatus(void)
 	switch (reply->state)
 	{
 	case DN_MOTE_STATE_IDLE:
-		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_openSocket);
+		dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_openSocket);
 		break;
 	case DN_MOTE_STATE_OPERATIONAL:
-		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
-		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	}
 }
@@ -750,12 +750,12 @@ static void reply_getMoteStatus(void)
  socket ID before scheduling its binding. If no sockets are available, a mote
  reset is scheduled and the connect process starts over.
  */
-static void event_openSocket(void)
+static void dn_event_openSocket(void)
 {
 	debug("Open socket");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_openSocket);
+	dn_fsm_setReplyCallback(dn_reply_openSocket);
 
 	// Issue mote API command
 	dn_ipmt_openSocket
@@ -765,16 +765,16 @@ static void event_openSocket(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_openSocket(void)
+static void dn_reply_openSocket(void)
 {
 	dn_ipmt_openSocket_rpt* reply;
 	debug("Open socket reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_openSocket_rpt*)dn_fsm_vars.replyBuf;
@@ -785,16 +785,16 @@ static void reply_openSocket(void)
 	case DN_RC_OK:
 		debug("Socket %d opened successfully", reply->socketId);
 		dn_fsm_vars.socketId = reply->socketId;
-		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_bindSocket);
+		dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_bindSocket);
 		break;
 	case DN_RC_NO_RESOURCES:
 		debug("Couldn't create socket due to resource availability");
 		// Own state for disconnecting?
-		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -805,12 +805,12 @@ static void reply_openSocket(void)
  Binds the previously opened socket to a port. If said port is already bound,
  a mote reset is scheduled and the connect process starts over.
  */
-static void event_bindSocket(void)
+static void dn_event_bindSocket(void)
 {
 	debug("Bind socket");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_bindSocket);
+	dn_fsm_setReplyCallback(dn_reply_bindSocket);
 
 	// Issue mote API command
 	dn_ipmt_bindSocket
@@ -821,16 +821,16 @@ static void event_bindSocket(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_bindSocket(void)
+static void dn_reply_bindSocket(void)
 {
 	dn_ipmt_bindSocket_rpt* reply;
 	debug("Bind socket reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_bindSocket_rpt*)dn_fsm_vars.replyBuf;
@@ -840,19 +840,19 @@ static void reply_bindSocket(void)
 	{
 	case DN_RC_OK:
 		debug("Socket bound successfully");
-		fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_setJoinKey);
+		dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_setJoinKey);
 		break;
 	case DN_RC_BUSY:
 		debug("Port already bound");
-		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	case DN_RC_NOT_FOUND:
 		debug("Invalid socket ID");
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -863,12 +863,12 @@ static void reply_bindSocket(void)
  Configures the join key that the mote should use when attempting to join a
  network.
  */
-static void event_setJoinKey(void)
+static void dn_event_setJoinKey(void)
 {
 	debug("Set join key");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_setJoinKey);
+	dn_fsm_setReplyCallback(dn_reply_setJoinKey);
 
 	// Issue mote API command
 	dn_ipmt_setParameter_joinKey
@@ -878,16 +878,16 @@ static void event_setJoinKey(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_setJoinKey(void)
+static void dn_reply_setJoinKey(void)
 {
 	dn_ipmt_setParameter_joinKey_rpt* reply;
 	debug("Set join key reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_setParameter_joinKey_rpt*)dn_fsm_vars.replyBuf;
@@ -900,7 +900,7 @@ static void reply_setJoinKey(void)
 		if (dn_fsm_vars.networkId == DN_PROMISCUOUS_NET_ID)
 		{
 			// Promiscuous netID set; search for new first
-			fsm_enterState(DN_FSM_STATE_PROMISCUOUS, 0);
+			dn_fsm_enterState(DN_FSM_STATE_PROMISCUOUS, 0);
 			/*
 			 As of version 1.4.x, a network ID of 0xFFFF can be used to indicate
 			 that the mote should join the first network heard. Thus, searching
@@ -908,16 +908,16 @@ static void reply_setJoinKey(void)
 			*/
 		} else
 		{
-			fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_setNetworkId);
+			dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_setNetworkId);
 		}
 		break;
 	case DN_RC_WRITE_FAIL:
 		debug("Could not write the key to storage");
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -927,12 +927,12 @@ static void reply_setJoinKey(void)
 /**
  Configures the ID of the network that the mote should should try to join.
  */
-static void event_setNetworkId(void)
+static void dn_event_setNetworkId(void)
 {
 	debug("Set network ID");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_setNetworkId);
+	dn_fsm_setReplyCallback(dn_reply_setNetworkId);
 
 	// Issue mote API command
 	dn_ipmt_setParameter_networkId
@@ -942,16 +942,16 @@ static void event_setNetworkId(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_setNetworkId(void)
+static void dn_reply_setNetworkId(void)
 {
 	dn_ipmt_setParameter_networkId_rpt* reply;
 	debug("Set network ID reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_setParameter_networkId_rpt*)dn_fsm_vars.replyBuf;
@@ -961,15 +961,15 @@ static void reply_setNetworkId(void)
 	{
 	case DN_RC_OK:
 		debug("Network ID set");
-		fsm_enterState(DN_FSM_STATE_JOINING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_JOINING, 0);
 		break;
 	case DN_RC_WRITE_FAIL:
 		debug("Could not write the network ID to storage");
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -982,12 +982,12 @@ static void reply_setNetworkId(void)
  Upon a successful reply, the FSM will wait for an advReceived notification,
  before attempting to join the reported network.
  */
-static void event_search(void)
+static void dn_event_search(void)
 {
 	debug("Search");
 	
 	// Arm reply callback
-	fsm_setReplyCallback(reply_search);
+	dn_fsm_setReplyCallback(dn_reply_search);
 
 	// Issue mote API command
 	dn_ipmt_search
@@ -996,16 +996,16 @@ static void event_search(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_search(void)
+static void dn_reply_search(void)
 {
 	dn_ipmt_search_rpt* reply;
 	debug("Search reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_search_rpt*)dn_fsm_vars.replyBuf;
@@ -1019,11 +1019,11 @@ static void reply_search(void)
 		break;
 	case DN_RC_INVALID_STATE:
 		debug("The mote is in an invalid state to start searching");
-		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -1037,12 +1037,12 @@ static void reply_search(void)
  the connect procedure starts over. Otherwise the FSM will wait for the ensuing
  operational event when the mote has finished joining.
  */
-static void event_join(void)
+static void dn_event_join(void)
 {
 	debug("Join");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_join);
+	dn_fsm_setReplyCallback(dn_reply_join);
 
 	// Issue mote API command
 	dn_ipmt_join
@@ -1051,16 +1051,16 @@ static void event_join(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_join(void)
+static void dn_reply_join(void)
 {
 	dn_ipmt_join_rpt* reply;
 	debug("Join reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_join_rpt*)dn_fsm_vars.replyBuf;
@@ -1074,15 +1074,15 @@ static void reply_join(void)
 		break;
 	case DN_RC_INVALID_STATE:
 		debug("The mote is in an invalid state to start join operation");
-		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	case DN_RC_INCOMPLETE_JOIN_INFO:
 		debug("Incomplete configuration to start joining");
-		fsm_enterState(DN_FSM_STATE_RESETTING, 0);
+		dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -1094,12 +1094,12 @@ static void reply_join(void)
  simply checks that the command was accepted, as the FSM will wait for the
  ensuing svcChange event when the service allocation has changed.
  */
-static void event_requestService(void)
+static void dn_event_requestService(void)
 {
 	debug("Request service");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_requestService);
+	dn_fsm_setReplyCallback(dn_reply_requestService);
 
 	// Issue mote API command
 	dn_ipmt_requestService
@@ -1111,16 +1111,16 @@ static void event_requestService(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_requestService(void)
+static void dn_reply_requestService(void)
 {
 	dn_ipmt_requestService_rpt* reply;
 	debug("Request service reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_requestService_rpt*)dn_fsm_vars.replyBuf;
@@ -1134,7 +1134,7 @@ static void reply_requestService(void)
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -1146,12 +1146,12 @@ static void reply_requestService(void)
  checks that we have been granted a service equal to or better than what was
  requested (smaller value equals better).
  */
-static void event_getServiceInfo(void)
+static void dn_event_getServiceInfo(void)
 {
 	debug("Get service info");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_getServiceInfo);
+	dn_fsm_setReplyCallback(dn_reply_getServiceInfo);
 
 	// Issue mote API command
 	dn_ipmt_getServiceInfo
@@ -1162,16 +1162,16 @@ static void event_getServiceInfo(void)
 			);
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_getServiceInfo(void)
+static void dn_reply_getServiceInfo(void)
 {
 	dn_ipmt_getServiceInfo_rpt* reply;
 	debug("Get service info reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_getServiceInfo_rpt*)dn_fsm_vars.replyBuf;
@@ -1190,16 +1190,16 @@ static void reply_getServiceInfo(void)
 				log_warn("Only granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
 				// TODO: Should maybe fail?
 			}
-			fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
+			dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 		} else
 		{
 			debug("Service request still pending");
-			fsm_scheduleEvent(DN_CMD_PERIOD_MS, event_getServiceInfo);
+			dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_getServiceInfo);
 		}
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 		break;
 	}
 }
@@ -1210,13 +1210,13 @@ static void reply_getServiceInfo(void)
  This event sends a packet into the network, and its reply checks that it was
  accepted and queued up for transmission.
  */
-static void event_sendTo(void)
+static void dn_event_sendTo(void)
 {
 	dn_err_t err;
 	debug("Send");
 
 	// Arm reply callback
-	fsm_setReplyCallback(reply_sendTo);
+	dn_fsm_setReplyCallback(dn_reply_sendTo);
 
 	// Issue mote API command
 	err = dn_ipmt_sendTo
@@ -1234,20 +1234,20 @@ static void event_sendTo(void)
 	if (err != DN_ERR_NONE)
 	{
 		debug("Send error: %u", err);
-		fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 	}
 
 	// Schedule timeout for reply
-	fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, event_response_timeout);
+	dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
 }
 
-static void reply_sendTo(void)
+static void dn_reply_sendTo(void)
 {
 	dn_ipmt_sendTo_rpt* reply;
 	debug("Send reply");
 
 	// Cancel reply timeout
-	fsm_cancelEvent();
+	dn_fsm_cancelEvent();
 
 	// Parse reply
 	reply = (dn_ipmt_sendTo_rpt*)dn_fsm_vars.replyBuf;
@@ -1257,15 +1257,15 @@ static void reply_sendTo(void)
 	{
 	case DN_RC_OK:
 		debug("Packet was queued up for transmission");
-		fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 		break;
 	case DN_RC_NO_RESOURCES:
 		debug("No queue space to accept the packet");
-		fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 		break;
 	default:
 		log_warn("Unexpected response code: %#x", reply->RC);
-		fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
+		dn_fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 		break;
 	}
 }
