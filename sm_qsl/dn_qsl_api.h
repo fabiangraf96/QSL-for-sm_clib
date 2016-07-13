@@ -70,7 +70,7 @@ bool dn_qsl_isConnected(void);
  \param joinKey The join key to use in the connection attempt.
  \param srcPort The port that you expect to get downstream data on.
  \param service_ms The service to request after establishing a connection, given in milliseconds.
- \return A boolean indicating if the mote is connected to a network.
+ \return A boolean indicating if the connection attempt and/or service request was successful.
  */
 bool dn_qsl_connect(uint16_t netID, const uint8_t* joinKey, uint16_t srcPort, uint32_t service_ms);
 
@@ -81,8 +81,8 @@ bool dn_qsl_connect(uint16_t netID, const uint8_t* joinKey, uint16_t srcPort, ui
  \brief Send a packet into the network.
  
  Tells the mote send a packet with the given payload into the network.
- Said packet is sent to the provided destination port and the IPv6 address
- defined by DEST_IP (default is the well-known manager address).
+ Said packet is sent to the provided destination port (default if 0) and the
+ IPv6 address defined by DEST_IP (default is the well-known manager address).
  The FSM waits for a confirmation from the mote that the packet was accepted
  and queued up for transmission. Note that end-to-end delivery is not
  guaranteed with the utilized UDP, but reliability is typically > 99.9 %.

@@ -519,7 +519,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			dn_fsm_vars.inbox.unreadPackets++;
 		} else
 		{
-			log_warn("Inbox overflow");
+			log_warn("Inbox overflow"); // TODO: Drop oldest packet to make room
 		}
 		break;
 	case CMDID_MACRX:
