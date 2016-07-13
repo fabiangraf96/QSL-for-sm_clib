@@ -32,6 +32,7 @@ int main(int argc, char** argv)
 		0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
 		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
 	};
+	uint16_t srcPort = DN_DEFAULT_SRC_PORT;
 	uint32_t service_ms = 9000;
 	uint16_t destPort = DN_DEFAULT_DEST_PORT;
 	bool success = FALSE;
@@ -66,7 +67,7 @@ int main(int argc, char** argv)
 			dn_sleep_ms(service_ms);
 		} else
 		{
-			success = dn_qsl_connect(netID, joinKey, 0);//service_ms);
+			success = dn_qsl_connect(netID, joinKey, srcPort, 0);//service_ms);
 			if (success)
 			{
 				log_info("Connected to network");

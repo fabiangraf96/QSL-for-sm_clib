@@ -20,7 +20,6 @@
 //=========================== defines =========================================
 
 #define DN_DEST_IP	DN_DEFAULT_DEST_IP
-#define DN_SRC_PORT	DN_DEFAULT_SRC_PORT
 
 //=========================== typedef =========================================
 
@@ -61,18 +60,19 @@ bool dn_qsl_isConnected(void);
 /**
  \brief Attempt to make the mote connect to a network with the given parameters.
  
- If the passed network ID or join key is zero/NULL, default values are used.
- If non-zero, the passed service will be requested after joining a network.
- A new service can be requested later by calling connect with the same network
- ID and join key as the one the mote is already connected. Further, if the
- requested service is also indifferent, the function simply returns TRUE. 
+ If the passed network ID, join key or source port is zero/NULL, default values
+ are used. If non-zero, the passed service will be requested after joining a
+ network. A new service can be requested later by calling connect again with the
+ same network ID, join key and source port. Further, if the requested service is
+ also indifferent, the function simply returns TRUE. 
  
  \param netID The ID of the network to attempt to connect with.
  \param joinKey The join key to use in the connection attempt.
+ \param srcPort The port that you expect to get downstream data on.
  \param service_ms The service to request after establishing a connection, given in milliseconds.
  \return A boolean indicating if the mote is connected to a network.
  */
-bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t service_ms);
+bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t service_ms);
 
 
 //===== send

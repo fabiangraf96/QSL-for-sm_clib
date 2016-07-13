@@ -36,6 +36,7 @@ typedef struct
 	uint8_t socketId;
 	uint16_t networkId;
 	uint8_t joinKey[DN_JOIN_KEY_LEN];
+	uint16_t srcPort;
 	uint32_t service_ms;
 	uint8_t payloadBuf[DN_DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t payloadSize;
@@ -84,7 +85,7 @@ static void dn_reply_getServiceInfo(void);
 static void dn_event_sendTo(void);
 static void dn_reply_sendTo(void);
 // helpers
-static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms);
+static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms);
 static uint8_t getPayloadLimit(uint16_t destPort);
 
 //=========================== public ==========================================
@@ -116,7 +117,7 @@ bool dn_qsl_isConnected(void)
 	return dn_fsm_vars.state == DN_FSM_STATE_CONNECTED;
 }
 
-bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
+bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
 	dn_err_t err;
@@ -127,7 +128,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		log_warn("Can't connect; not initialized");
 		return FALSE;
 	case DN_FSM_STATE_DISCONNECTED:
-		err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
+		err = checkAndSaveNetConfig(netID, joinKey, srcPort, req_service_ms);
 		if (err != DN_ERR_NONE)
 		{
 			return FALSE;
@@ -136,15 +137,16 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
 		dn_fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 		break;
 	case DN_FSM_STATE_CONNECTED:
-		if ((netID > 0 && netID != dn_fsm_vars.networkId) ||
-				(joinKey != NULL && memcmp(joinKey, dn_fsm_vars.joinKey, DN_JOIN_KEY_LEN) != 0))
+		if ((netID > 0 && netID != dn_fsm_vars.networkId)
+				|| (joinKey != NULL && memcmp(joinKey, dn_fsm_vars.joinKey, DN_JOIN_KEY_LEN) != 0)
+				|| (srcPort > 0 && srcPort != dn_fsm_vars.srcPort))
 		{
-			err = checkAndSaveNetConfig(netID, joinKey, req_service_ms);
+			err = checkAndSaveNetConfig(netID, joinKey, srcPort, req_service_ms);
 			if (err != DN_ERR_NONE)
 			{
 				return FALSE;
 			}
-			debug("New network ID and/or join key; reconnecting...");
+			debug("New network ID, join key and/or source port; reconnecting...");
 			dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		} else if (req_service_ms > 0 && req_service_ms != dn_fsm_vars.service_ms)
 		{
@@ -822,7 +824,7 @@ static void dn_event_bindSocket(void)
 	dn_ipmt_bindSocket
 			(
 			dn_fsm_vars.socketId,
-			DN_SRC_PORT,
+			dn_fsm_vars.srcPort,
 			(dn_ipmt_bindSocket_rpt*)dn_fsm_vars.replyBuf
 			);
 
@@ -1278,7 +1280,7 @@ static void dn_reply_sendTo(void)
 
 //=========================== helpers =========================================
 
-static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t req_service_ms)
+static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms)
 {
 	if (netID == 0)
 	{
@@ -1301,7 +1303,20 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t
 	{
 		memcpy(dn_fsm_vars.joinKey, joinKey, DN_JOIN_KEY_LEN);
 	}
+	
+	if (srcPort == 0)
+	{
+		debug("No source port given; using default");
+		dn_fsm_vars.srcPort = DN_DEFAULT_SRC_PORT;
+	} else
+	{
+		dn_fsm_vars.srcPort = srcPort;
+	}
 
+	if (req_service_ms == 0)
+	{
+		debug("No service requested; will only be granted base bandwidth");
+	}
 	dn_fsm_vars.service_ms = req_service_ms;
 
 	return DN_ERR_NONE;
@@ -1310,7 +1325,7 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint32_t
 static uint8_t getPayloadLimit(uint16_t destPort)
 {
 	bool destIsF0Bx = (destPort >= DN_WELL_KNOWN_PORT_1 && destPort <= DN_WELL_KNOWN_PORT_8);
-	bool srcIsF0Bx = (DN_SRC_PORT >= DN_WELL_KNOWN_PORT_1 && DN_SRC_PORT <= DN_WELL_KNOWN_PORT_8);
+	bool srcIsF0Bx = (dn_fsm_vars.srcPort >= DN_WELL_KNOWN_PORT_1 && dn_fsm_vars.srcPort <= DN_WELL_KNOWN_PORT_8);
 	int8_t destIsMng = memcmp(DN_DEST_IP, DN_DEFAULT_DEST_IP, DN_IPv6ADDR_LEN);
 	
 	if (destIsMng == 0)

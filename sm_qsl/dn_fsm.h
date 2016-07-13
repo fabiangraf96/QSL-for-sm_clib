@@ -101,7 +101,7 @@
  its imminent software reset. It does, however, take much longer:
  About 20 seconds for disconnect vs 5 seconds for reset only.
  */
-#define DN_MOTE_DISCONNECT_BEFORE_RESET TRUE
+#define DN_MOTE_DISCONNECT_BEFORE_RESET FALSE
 
 //=========================== typedef =========================================
 
