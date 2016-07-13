@@ -18,27 +18,26 @@
 #include "dn_endianness.h"
 #include "dn_time.h"
 
-static uint16_t nextValue(void);
-static void parsePayload(uint8_t *payload, uint8_t size);
+static uint16_t randomWalk(void);
+static void parsePayload(const uint8_t *payload, uint8_t size);
 
 /*
  * 
  */
 int main(int argc, char** argv)
 {
-	uint16_t netID = 1230;
-	uint8_t joinKey[DN_JOIN_KEY_LEN] =
+	uint16_t netID = 1230; // TODO: Use default in release
+	uint8_t joinKey[DN_JOIN_KEY_LEN] = // TODO: Use default in release
 	{
 		0x44,0x55,0x53,0x54,0x4E,0x45,0x54,0x57,
 		0x4F,0x52,0x4B,0x53,0x52,0x4F,0x43,0x4A
 	};
-	uint16_t srcPort = DN_DEFAULT_SRC_PORT;
-	uint32_t service_ms = 9000;
+	uint16_t srcPort = 60000;
+	uint32_t service_ms = 4000;
 	uint16_t destPort = DN_DEFAULT_DEST_PORT;
-	bool success = FALSE;
-	uint8_t payload[2];
+	uint8_t payload[3];
 	uint8_t inboxBuf[DN_DEFAULT_PAYLOAD_SIZE_LIMIT];
-	uint8_t readBytes;
+	uint8_t bytesRead;
 	
 	log_info("Initializing...");
 	dn_qsl_init(); // Always returns TRUE atm
@@ -47,12 +46,16 @@ int main(int argc, char** argv)
 	{
 		if (dn_qsl_isConnected())
 		{
-			uint16_t val = nextValue();
+			uint16_t val = randomWalk();
+			static uint8_t count = 0;
+			
 			dn_write_uint16_t(payload, val);
-			success = dn_qsl_send(payload, sizeof (val), destPort);
-			if (success)
+			payload[2] = count;
+			
+			if (dn_qsl_send(payload, sizeof (payload), destPort))
 			{
-				log_info("Sent message: %u", val);
+				log_info("Sent message nr %u: %u", count, val);
+				count++;
 			} else
 			{
 				log_info("Send failed");
@@ -60,15 +63,14 @@ int main(int argc, char** argv)
 
 			do
 			{
-				readBytes = dn_qsl_read(inboxBuf);
-				parsePayload(inboxBuf, readBytes);
-			} while (readBytes > 0);
+				bytesRead = dn_qsl_read(inboxBuf);
+				parsePayload(inboxBuf, bytesRead);
+			} while (bytesRead > 0);
 			
 			dn_sleep_ms(service_ms);
 		} else
 		{
-			success = dn_qsl_connect(netID, joinKey, srcPort, 0);//service_ms);
-			if (success)
+			if (dn_qsl_connect(netID, joinKey, srcPort, service_ms))
 			{
 				log_info("Connected to network");
 			} else
@@ -81,37 +83,42 @@ int main(int argc, char** argv)
 	return (EXIT_SUCCESS);
 }
 
-static uint16_t nextValue(void)
+static uint16_t randomWalk(void)
 {
-	static uint16_t lastValue = 0x7fff;
 	static bool first = TRUE;
-	int N = 9001;
+	static uint16_t lastValue = 0x7fff; // Start in middle of uint16 range
+	const int powerLevel = 9001;
+	
+	// Seed random number generator on first call
 	if (first)
 	{
 		first = FALSE;
 		srand(dn_time_ms());
 	}
-	lastValue += rand() / (RAND_MAX / N + 1) - N/2;
+	
+	// Random walk within +/- powerLevel
+	lastValue += rand() / (RAND_MAX / (2*powerLevel) + 1) - powerLevel;
 	return lastValue;
 }
 
-static void parsePayload(uint8_t *payload, uint8_t size)
+static void parsePayload(const uint8_t *payload, uint8_t size)
 {
-	uint8_t cmd;
-	uint16_t msg;
+	uint8_t i;
+	char msg[size + 1];
+	
 	if (size == 0)
 	{
 		// Nothing to parse
 		return;
 	}
 	
-	cmd = payload[0];
-	if (size == 3)
+	// Parse bytes individually as well as together as a string
+	log_info("Received downstream payload of %u bytes:", size);
+	for (i = 0; i < size; i++)
 	{
-		dn_read_uint16_t(&msg, &payload[1]);
-		log_info("Received downstream data: cmd %#x, msg %#x", cmd, msg);
-	} else
-	{
-		log_warn("Received unexpected data %#x (%u)", cmd, cmd);
+		msg[i] = payload[i];
+		log_info("\tByte# %03u: %#.2x (%u)", i, payload[i], payload[i]);
 	}
+	msg[size] = '\0';
+	log_info("\tMessage: %s", msg);
 }
