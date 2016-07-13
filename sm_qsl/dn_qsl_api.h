@@ -72,7 +72,7 @@ bool dn_qsl_isConnected(void);
  \param service_ms The service to request after establishing a connection, given in milliseconds.
  \return A boolean indicating if the mote is connected to a network.
  */
-bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t service_ms);
+bool dn_qsl_connect(uint16_t netID, const uint8_t* joinKey, uint16_t srcPort, uint32_t service_ms);
 
 
 //===== send
@@ -92,7 +92,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t
  \param destPort The destination port for the packet.
  \return A boolean indicating if the packet was queued up for transmission.
  */
-bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort);
+bool dn_qsl_send(const uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort);
 
 
 //===== read

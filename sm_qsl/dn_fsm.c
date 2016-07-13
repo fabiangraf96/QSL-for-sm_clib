@@ -85,7 +85,7 @@ static void dn_reply_getServiceInfo(void);
 static void dn_event_sendTo(void);
 static void dn_reply_sendTo(void);
 // helpers
-static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms);
+static dn_err_t checkAndSaveNetConfig(uint16_t netID, const uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms);
 static uint8_t getPayloadLimit(uint16_t destPort);
 
 //=========================== public ==========================================
@@ -117,7 +117,7 @@ bool dn_qsl_isConnected(void)
 	return dn_fsm_vars.state == DN_FSM_STATE_CONNECTED;
 }
 
-bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms)
+bool dn_qsl_connect(uint16_t netID, const uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
 	dn_err_t err;
@@ -177,7 +177,7 @@ bool dn_qsl_connect(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t
 	return dn_fsm_vars.state == DN_FSM_STATE_CONNECTED;
 }
 
-bool dn_qsl_send(uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
+bool dn_qsl_send(const uint8_t* payload, uint8_t payloadSize_B, uint16_t destPort)
 {
 	uint32_t cmdStart_ms = dn_time_ms();
 	uint8_t maxPayloadSize;
@@ -1280,7 +1280,7 @@ static void dn_reply_sendTo(void)
 
 //=========================== helpers =========================================
 
-static dn_err_t checkAndSaveNetConfig(uint16_t netID, uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms)
+static dn_err_t checkAndSaveNetConfig(uint16_t netID, const uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms)
 {
 	if (netID == 0)
 	{
