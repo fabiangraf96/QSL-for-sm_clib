@@ -25,6 +25,7 @@ typedef struct
 	// FSM
 	uint32_t fsmEventScheduled_ms;
 	uint16_t fsmDelay_ms;
+	bool fsmArmed;
 	uint8_t state;
 	// C Library API
 	dn_fsm_reply_cbt replyCb;
@@ -256,14 +257,14 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
  */
 static void dn_fsm_run(void)
 {
-	if (dn_fsm_vars.fsmDelay_ms > 0 && (dn_time_ms() - dn_fsm_vars.fsmEventScheduled_ms > dn_fsm_vars.fsmDelay_ms))
+	if (dn_fsm_vars.fsmArmed && (dn_time_ms() - dn_fsm_vars.fsmEventScheduled_ms > dn_fsm_vars.fsmDelay_ms))
 	{
 		// Scheduled event is due; execute it
-		dn_fsm_vars.fsmDelay_ms = 0;
 		if (dn_fsm_vars.fsmCb != NULL)
 		{
 			dn_fsm_vars.fsmCb();
 		}
+		dn_fsm_cancelEvent();
 	} else
 	{
 		// Sleep to save CPU power
@@ -281,6 +282,7 @@ static void dn_fsm_scheduleEvent(uint16_t delay_ms, dn_fsm_timer_cbt cb)
 	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms(); // TODO: Move to each cmd?
 	dn_fsm_vars.fsmDelay_ms = delay_ms;
 	dn_fsm_vars.fsmCb = cb;
+	dn_fsm_vars.fsmArmed = TRUE;
 }
 
 //===== cancelEvent
@@ -292,6 +294,7 @@ static void dn_fsm_cancelEvent(void)
 {
 	dn_fsm_vars.fsmDelay_ms = 0;
 	dn_fsm_vars.fsmCb = NULL;
+	dn_fsm_vars.fsmArmed = FALSE;
 }
 
 //===== setReplyCallback
