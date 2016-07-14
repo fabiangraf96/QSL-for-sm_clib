@@ -504,23 +504,24 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	case CMDID_RECEIVE:
 		notif_receive = (dn_ipmt_receive_nt*)dn_fsm_vars.notifBuf;
 		debug("Received downstream data");
-
-		if (dn_fsm_vars.inbox.unreadPackets < DN_INBOX_SIZE)
+		
+		// Push payload at tail of inbox
+		memcpy
+				(
+				dn_fsm_vars.inbox.pktBuf[dn_fsm_vars.inbox.tail],
+				notif_receive->payload,
+				notif_receive->payloadLen
+				);
+		dn_fsm_vars.inbox.pktSize[dn_fsm_vars.inbox.tail] = notif_receive->payloadLen;
+		dn_fsm_vars.inbox.tail = (dn_fsm_vars.inbox.tail + 1) % DN_INBOX_SIZE;
+		if(dn_fsm_vars.inbox.unreadPackets == DN_INBOX_SIZE)
 		{
-			// Push payload at tail of inbox
-			memcpy
-					(
-					dn_fsm_vars.inbox.pktBuf[dn_fsm_vars.inbox.tail],
-					notif_receive->payload,
-					notif_receive->payloadLen
-					);
-			dn_fsm_vars.inbox.pktSize[dn_fsm_vars.inbox.tail] = notif_receive->payloadLen;
-			dn_fsm_vars.inbox.tail = (dn_fsm_vars.inbox.tail + 1) % DN_INBOX_SIZE;
-			dn_fsm_vars.inbox.unreadPackets++;
+			log_warn("Inbox overflow; oldest packet dropped");
 		} else
 		{
-			log_warn("Inbox overflow"); // TODO: Drop oldest packet to make room
+			dn_fsm_vars.inbox.unreadPackets++;
 		}
+		
 		break;
 	case CMDID_MACRX:
 		// Not implemented
@@ -590,7 +591,7 @@ static void dn_event_responseTimeout(void)
 		dn_fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 		break;
 	case DN_FSM_STATE_SENDING:
-		// Response timeout during send; fail (TODO: Try again instead?)
+		// Response timeout during send; fail
 		dn_fsm_enterState(DN_FSM_STATE_SEND_FAILED, 0);
 		break;
 	default:
@@ -1193,12 +1194,14 @@ static void dn_reply_getServiceInfo(void)
 			if (reply->value <= dn_fsm_vars.service_ms)
 			{
 				log_info("Granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
+				dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 			} else
 			{
 				log_warn("Only granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
-				// TODO: Should maybe fail?
+				dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+				// TODO: Augment API with function to query granted service instead of just failing?
 			}
-			dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
+			
 		} else
 		{
 			debug("Service request still pending");
