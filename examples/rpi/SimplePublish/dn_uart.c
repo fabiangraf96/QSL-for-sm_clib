@@ -22,10 +22,10 @@
 #include "dn_debug.h"
 
 //=========================== defines =========================================
-#define UART_INTERNAL	"/dev/ttyAMA0" // External USB UART
-#define UART_EXTERNAL	"/dev/ttyUSB0" // On-board UART (Pin 8 & 10)
+#define UART_INTERNAL	"/dev/serial0" // Alias for on-board UART: GPIO14 and 15 (ttyS0 for RPi3, ttyAMA0 for older). 
+#define UART_EXTERNAL	"/dev/ttyUSB0" // External USB UART
 
-#define UART_PORTNAME			UART_EXTERNAL
+#define UART_PORTNAME			UART_INTERNAL
 #define UART_READ_TIMEOUT_US	500000
 
 //=========================== variables =======================================

@@ -524,6 +524,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 		{
 			dn_fsm_vars.inbox.unreadPackets++;
 		}
+		debug("Inbox capacity at %u / %u", dn_fsm_vars.inbox.unreadPackets, DN_INBOX_SIZE);
 		
 		break;
 	case CMDID_MACRX:
@@ -802,7 +803,6 @@ static void dn_reply_openSocket(void)
 		break;
 	case DN_RC_NO_RESOURCES:
 		debug("Couldn't create socket due to resource availability");
-		// Own state for disconnecting?
 		dn_fsm_enterState(DN_FSM_STATE_RESETTING, 0);
 		break;
 	default:
