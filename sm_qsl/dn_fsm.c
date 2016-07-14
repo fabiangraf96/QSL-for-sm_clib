@@ -477,11 +477,13 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			case DN_FSM_STATE_JOINING:
 			case DN_FSM_STATE_REQ_SERVICE:
 			case DN_FSM_STATE_RESETTING:
+			case DN_FSM_STATE_PROMISCUOUS:
 				// Restart during connect; retry
 				dn_fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 				break;
 			case DN_FSM_STATE_CONNECTED:
 			case DN_FSM_STATE_SENDING:
+			case DN_FSM_STATE_SEND_FAILED:
 				// Disconnect/reset; set state accordingly
 				dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 				break;
@@ -491,6 +493,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			switch (dn_fsm_vars.state)
 			{
 			case DN_FSM_STATE_PRE_JOIN:
+			case DN_FSM_STATE_PROMISCUOUS:
 				/*
 				 Early (and unexpected) operational (connected to network)
 				 during connect; reset and retry
@@ -587,6 +590,7 @@ static void dn_event_responseTimeout(void)
 	case DN_FSM_STATE_JOINING:
 	case DN_FSM_STATE_REQ_SERVICE:
 	case DN_FSM_STATE_RESETTING:
+	case DN_FSM_STATE_PROMISCUOUS:
 		// Response timeout during connect; retry
 		dn_fsm_enterState(DN_FSM_STATE_PRE_JOIN, 0);
 		break;
