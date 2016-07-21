@@ -4,6 +4,8 @@ TARGET = main
 #Relative path to directories for SmartMesh C and QuickStart Libraries
 DIR_CLIB	= sm_clib
 DIR_QSL		= sm_qsl
+#DIR_CLIB	= ../../../sm_clib/sm_clib
+#DIR_QSL		= ../../../sm_qsl
 
 #Object directory
 ODIR = obj
