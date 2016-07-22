@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="97">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+      <itemPath>../../../sm_clib/sm_clib/dn_clib_build.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_clib_version.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_common.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_debug.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_defaults.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_endianness.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_fsm.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_hdlc.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_ipmt.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_lock.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_qsl_api.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_serial_mt.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_time.h</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_uart.h</itemPath>
+      <itemPath>../../../sm_qsl/dn_watchdog.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>dn_endianness.c</itemPath>
+      <itemPath>../../../sm_qsl/dn_fsm.c</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_hdlc.c</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_ipmt.c</itemPath>
+      <itemPath>dn_lock.c</itemPath>
+      <itemPath>../../../sm_clib/sm_clib/dn_serial_mt.c</itemPath>
+      <itemPath>dn_time.c</itemPath>
+      <itemPath>dn_uart.c</itemPath>
+      <itemPath>dn_watchdog.c</itemPath>
+      <itemPath>main.c</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="Test Files"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="1">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <incDir>
+            <pElem>../../../sm_clib/sm_clib</pElem>
+            <pElem>../../../sm_qsl</pElem>
+          </incDir>
+          <warningLevel>2</warningLevel>
+        </cTool>
+        <linkerTool>
+          <linkerLibItems>
+            <linkerLibStdlibItem>PosixThreads</linkerLibStdlibItem>
+          </linkerLibItems>
+        </linkerTool>
+      </compileType>
+      <item path="../../../sm_clib/sm_clib/dn_clib_build.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_clib_version.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_common.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_endianness.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_hdlc.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_hdlc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmt.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_lock.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_serial_mt.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_serial_mt.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_uart.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_debug.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_defaults.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_fsm.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_fsm.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_qsl_api.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_time.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_watchdog.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dn_endianness.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_lock.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_time.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_uart.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_watchdog.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="main.c" ex="false" tool="0" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Release" type="1">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+        </asmTool>
+      </compileType>
+      <item path="../../../sm_clib/sm_clib/dn_clib_build.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_clib_version.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_common.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_endianness.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_hdlc.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_hdlc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmt.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_ipmt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_lock.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_serial_mt.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_serial_mt.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../../../sm_clib/sm_clib/dn_uart.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_debug.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_defaults.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_fsm.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_fsm.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_qsl_api.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_time.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../../../sm_qsl/dn_watchdog.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dn_endianness.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_lock.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_time.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_uart.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dn_watchdog.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="main.c" ex="false" tool="0" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>
