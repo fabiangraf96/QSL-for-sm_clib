@@ -23,7 +23,7 @@
 
 //=========================== defines =========================================
 #define UART_INTERNAL	"/dev/serial0" // Alias for on-board UART: GPIO14 and 15 (ttyS0 for RPi3, ttyAMA0 for older). 
-#define UART_EXTERNAL	"/dev/ttyUSB0" // External USB UART
+#define UART_EXTERNAL	"/dev/ttyUSB0" // External USB UART (set to ttyUSB3 for interface board)
 
 #define UART_PORTNAME			UART_INTERNAL
 #define UART_READ_TIMEOUT_US	500000
