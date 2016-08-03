@@ -281,7 +281,7 @@ static void dn_fsm_run(void)
  */
 static void dn_fsm_scheduleEvent(uint16_t delay_ms, dn_fsm_timer_cbt cb)
 {
-	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms(); // TODO: Move to each cmd?
+	dn_fsm_vars.fsmEventScheduled_ms = dn_time_ms();
 	dn_fsm_vars.fsmDelay_ms = delay_ms;
 	dn_fsm_vars.fsmCb = cb;
 	dn_fsm_vars.fsmArmed = TRUE;
@@ -1197,13 +1197,12 @@ static void dn_reply_getServiceInfo(void)
 		{
 			if (reply->value <= dn_fsm_vars.service_ms)
 			{
-				log_info("Granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
+				debug("Granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
 				dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 			} else
 			{
 				log_warn("Only granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
 				dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
-				// TODO: Augment API with function to query granted service instead of just failing?
 			}
 			
 		} else
