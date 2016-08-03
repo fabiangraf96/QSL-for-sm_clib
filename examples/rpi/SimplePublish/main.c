@@ -18,11 +18,12 @@
 #include "dn_endianness.h"	// Included to borrow array copying
 #include "dn_time.h"		// Included to borrow sleep function
 
-#define NETID           0       // Factory default value used if zero (1229)
-#define JOINKEY         NULL    // Factory default value used if NULL (44 55 53 54 4E 45 54 57 4F 52 4B 53 52 4F 43 4B)
-#define BANDWIDTH_MS    5000    // Not changed if zero (default base bandwidth given by manager is 9 s)
-#define SRC_PORT        60000   // Default port used if zero (0xf0b8)
-#define DEST_PORT       0       // Default port used if zero (0xf0b8)
+#define NETID			0		// Factory default value used if zero (1229)
+#define JOINKEY			NULL	// Factory default value used if NULL (44 55 53 54 4E 45 54 57 4F 52 4B 53 52 4F 43 4B)
+#define BANDWIDTH_MS	5000	// Not changed if zero (default base bandwidth given by manager is 9 s)
+#define SRC_PORT		60000	// Default port used if zero (0xf0b8)
+#define DEST_PORT		0		// Default port used if zero (0xf0b8)
+#define DATA_PERIOD_MS	5000	// Should be longer than (or equal to) bandwidth
 
 static uint16_t randomWalk(void);
 static void parsePayload(const uint8_t *payload, uint8_t size);
@@ -64,7 +65,7 @@ int main(int argc, char** argv)
 				parsePayload(inboxBuf, bytesRead);
 			} while (bytesRead > 0);
 			
-			dn_sleep_ms(BANDWIDTH_MS);
+			dn_sleep_ms(DATA_PERIOD_MS);
 		} else
 		{
 			if (dn_qsl_connect(NETID, JOINKEY, SRC_PORT, BANDWIDTH_MS))

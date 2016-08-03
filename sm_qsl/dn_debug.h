@@ -19,10 +19,7 @@
 #include <errno.h>
 #include <string.h>
 
-/*
- TODO: Possible to include in final QSL? Cut away dependencies?
- */
-
+/* Comment out this define to include debug messages */
 //#define NDEBUG
 
 #ifdef NDEBUG
