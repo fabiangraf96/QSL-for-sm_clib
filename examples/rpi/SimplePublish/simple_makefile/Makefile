@@ -20,7 +20,7 @@ ODIR = obj
 CC = gcc
 
 ### Flags, Libraries and Includes
-LIBS	= -lpthread
+LIBS	= -lpthread -lrt
 CFLAGS	= -Wall -I$(DIR_CLIB) -I$(DIR_QSL)
 EXT		= .c
 
