@@ -68,6 +68,7 @@ int main(int argc, char** argv)
 			dn_sleep_ms(DATA_PERIOD_MS);
 		} else
 		{
+			log_info("Connecting...");
 			if (dn_qsl_connect(NETID, JOINKEY, SRC_PORT, BANDWIDTH_MS))
 			{
 				log_info("Connected to network");
