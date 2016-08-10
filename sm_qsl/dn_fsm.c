@@ -262,11 +262,11 @@ static void dn_fsm_run(void)
 	if (dn_fsm_vars.fsmArmed && (dn_time_ms() - dn_fsm_vars.fsmEventScheduled_ms > dn_fsm_vars.fsmDelay_ms))
 	{
 		// Scheduled event is due; execute it
+		dn_fsm_vars.fsmArmed = FALSE;
 		if (dn_fsm_vars.fsmCb != NULL)
 		{
 			dn_fsm_vars.fsmCb();
 		}
-		dn_fsm_cancelEvent();
 	} else
 	{
 		// Sleep to save CPU power
