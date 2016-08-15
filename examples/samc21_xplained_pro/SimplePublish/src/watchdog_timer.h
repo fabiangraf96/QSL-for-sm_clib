@@ -9,8 +9,6 @@
 #ifndef WATCHDOG_TIMER_H_
 #define WATCHDOG_TIMER_H_
 
-#include "wdt.h"
-
 #define WATCHDOG_TIMEOUT_CLK	WDT_PERIOD_8192CLK;
 #define WATCHDOG_TIMEOUT_MS		8000 // Timeout in ms corresponding to the above ticks
 #define WATCHDOG_WARNING_CLK	WDT_PERIOD_4096CLK;

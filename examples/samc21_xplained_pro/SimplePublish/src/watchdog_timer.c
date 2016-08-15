@@ -6,6 +6,7 @@
  */ 
 
 #include "watchdog_timer.h"
+#include "wdt.h"
 #include "dn_debug.h"
 
 void watchdog_warning_callback(void)
