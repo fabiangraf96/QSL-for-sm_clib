@@ -22,7 +22,7 @@ void edbg_usart_clock_init(void)
 {
 	struct system_gclk_chan_config gclk_chan_conf;
 	uint32_t gclk_index = SERCOM4_GCLK_ID_CORE;
-	// Turn on module in PM
+	// Turn on module in PM (0x20 mask found for SERCOM4 in datasheet)
 	system_apb_clock_set_mask(SYSTEM_CLOCK_APB_APBC, 0x20);//PM_APBCMASK_SERCOM4);
 	// Get and set default values
 	system_gclk_chan_get_config_defaults(&gclk_chan_conf);
@@ -71,7 +71,7 @@ void ext_usart_clock_init(void)
 {
 	struct system_gclk_chan_config gclk_chan_conf;
 	uint32_t gclk_index = SERCOM3_GCLK_ID_CORE;
-	// Turn on module in PM
+	// Turn on module in PM (0x10 mask found for SERCOM3 in datasheet)
 	system_apb_clock_set_mask(SYSTEM_CLOCK_APB_APBC, 0x10);//PM_APBCMASK_SERCOM3);
 	// Get and set default values
 	system_gclk_chan_get_config_defaults(&gclk_chan_conf);
