@@ -14,6 +14,7 @@ Port of the lock module to the Raspberry Pi.
  */
 
 #include <time.h>
+#include <errno.h>
 
 #include "dn_time.h"
 #include "dn_debug.h"
