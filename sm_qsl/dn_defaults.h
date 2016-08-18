@@ -1,15 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+Copyright (c) 2016, Dust Networks. All rights reserved.
 
-/* 
- * File:   dn_defaults.h
- * Author: jhbr@datarespons.no
- *
- * Created on 4. juli 2016, 16:31
- */
+Default values and common definitions for the QuickStart Library.
+
+\license See attached DN_LICENSE.txt.
+*/
 
 #ifndef DN_DEFAULTS_H
 #define DN_DEFAULTS_H

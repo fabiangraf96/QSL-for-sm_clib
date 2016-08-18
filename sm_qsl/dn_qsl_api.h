@@ -1,15 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+Copyright (c) 2016, Dust Networks. All rights reserved.
 
-/* 
- * File:   dn_qsl_api.h
- * Author: jhbr@datarespons.no
- *
- * Created on 23. juni 2016, 12:36
- */
+QuickStart Library API.
+
+\license See attached DN_LICENSE.txt.
+*/
 
 #ifndef DN_QSL_API_H
 #define DN_QSL_API_H
