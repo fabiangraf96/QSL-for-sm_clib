@@ -1,16 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+Copyright (c) 2016, Dust Networks. All rights reserved.
 
-/*
- * File:   dn_debug.h
- * Author: jhbr
- * Kudos:  http://c.learncodethehardway.org/book/ex20.html
- *
- * Created on 24. juni 2016, 13:41
- */
+Debug macros (based on http://c.learncodethehardway.org/book/ex20.html ).
+
+\license See attached DN_LICENSE.txt.
+*/
 
 #ifndef DN_DEBUG_H
 #define DN_DEBUG_H

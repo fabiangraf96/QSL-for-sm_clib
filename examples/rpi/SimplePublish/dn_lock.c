@@ -1,15 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+Copyright (c) 2016, Dust Networks. All rights reserved.
 
-/* 
- * File:   dn_lock.c
- * Author: jhbr@datarespons.no
- *
- * Created on 21. juni 2016, 09:05
- */
+Port of the lock module to the Raspberry Pi.
+
+\license See attached DN_LICENSE.txt.
+*/
 
 #include "dn_lock.h"
 
