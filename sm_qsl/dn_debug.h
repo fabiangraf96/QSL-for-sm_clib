@@ -17,7 +17,7 @@ Debug macros (based on http://c.learncodethehardway.org/book/ex20.html ).
 #define NDEBUG
 
 /* Comment out this define to include log messages */
-#define NLOG
+//#define NLOG
 
 #ifdef NDEBUG
 #define debug(M, ...)	do {}while(0)
