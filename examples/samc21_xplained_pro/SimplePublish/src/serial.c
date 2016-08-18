@@ -3,6 +3,9 @@ Copyright (c) 2016, Dust Networks. All rights reserved.
 
 Serial (SERCOM) configuration for the SAM C21 Xplained Pro.
 
+Based on similar configuration presented in Application Note AT11626 for SAM D MCUs:
+http://www.atmel.com/Images/Atmel-42539-SAMD-SERCOM-USART-Configuration_ApplicationNote_AT11626.pdf
+
 \license See attached DN_LICENSE.txt.
 */
 
@@ -118,7 +121,12 @@ void ext_usart_init(void)
 }
 
 
-/* Assigning pin to the alternate peripheral function */
+/*
+Assign pin to the alternate peripheral function.
+ 
+The 32-bit pinmux value contains the pin number in its 16-bit MSB part
+and the peripheral function number in its 16-bit LSB part.
+*/
 static inline void pin_set_peripheral_function(uint32_t pinmux)
 {
 	uint8_t port = (uint8_t)((pinmux >> 16)/32);
@@ -128,8 +136,8 @@ static inline void pin_set_peripheral_function(uint32_t pinmux)
 }
 
 /*
-* internal Calculate 64 bit division, ref can be found in
-* http://en.wikipedia.org/wiki/Division_algorithm#Long_division
+Calculate 64 bit division; ref can be found at
+http://en.wikipedia.org/wiki/Division_algorithm#Long_division
 */
 static uint64_t long_division(uint64_t n, uint64_t d)
 {
@@ -146,9 +154,7 @@ static uint64_t long_division(uint64_t n, uint64_t d)
 		}
 	}
 	return q;
-}/*
-* \internal Calculate asynchronous baudrate value (UART)
-*/
+}/* Calculate asynchronous baudrate value */
 static uint16_t calculate_baud_value(const uint32_t baudrate, const uint32_t peripheral_clock, uint8_t sample_num)
 {
 	// Temporary variables
