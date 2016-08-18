@@ -6,13 +6,6 @@ Port of the watchdog module to the Raspberry Pi.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   dn_watchdog.c
- * Author: jhbr@datarespons.no
- *
- * Created on 23. juni 2016, 12:40
- */
-
 #include "dn_watchdog.h"
 
 //=========================== variables =======================================

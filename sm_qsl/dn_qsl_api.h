@@ -6,13 +6,6 @@ QuickStart Library API.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   dn_qsl_api.h
- * Author: jhbr@datarespons.no
- *
- * Created on 23. juni 2016, 12:36
- */
-
 #ifndef DN_QSL_API_H
 #define DN_QSL_API_H
 

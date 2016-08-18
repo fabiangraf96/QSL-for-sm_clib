@@ -6,13 +6,6 @@ SimplePublish example application for the Raspberry Pi.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   main.c
- * Author: jhbr@datarespons.no
- *
- * Created on 21. juni 2016, 13:09
- */
-
 #include <stdlib.h>
 
 #include "dn_qsl_api.h"		// Only really need this include

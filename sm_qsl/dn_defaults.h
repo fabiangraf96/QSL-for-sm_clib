@@ -6,13 +6,6 @@ Default values and common definitions for the QuickStart Library.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   dn_defaults.h
- * Author: jhbr@datarespons.no
- *
- * Created on 4. juli 2016, 16:31
- */
-
 #ifndef DN_DEFAULTS_H
 #define DN_DEFAULTS_H
 

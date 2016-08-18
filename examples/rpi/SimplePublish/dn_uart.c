@@ -6,13 +6,6 @@ Port of the uart module to the Raspberry Pi.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   dn_uart.c
- * Author: jhbr@datarespons.no
- *
- * Created on 22. juni 2016, 10:19
- */
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>

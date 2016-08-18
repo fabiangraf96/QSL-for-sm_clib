@@ -6,13 +6,6 @@ Finite State Machine for the QuickStart Library.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   dn_fsm.h
- * Author: jhbr@datarespons.no
- *
- * Created on 22. juni 2016, 15:15
- */
-
 #ifndef DN_FSM_H
 #define DN_FSM_H
 

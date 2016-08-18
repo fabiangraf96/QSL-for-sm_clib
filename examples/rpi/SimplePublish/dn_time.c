@@ -6,13 +6,6 @@ Port of the lock module to the Raspberry Pi.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   dn_time.c
- * Author: jhbr@datarespons.no
- *
- * Created on 23. juni 2016, 12:40
- */
-
 #include <time.h>
 #include <errno.h>
 

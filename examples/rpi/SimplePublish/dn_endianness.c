@@ -6,13 +6,6 @@ Port of the endianness module to the Raspberry Pi.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   dn_endianness.c
- * Author: jhbr@datarespons.no
- *
- * Created on 21. juni 2016, 13:09
- */
-
 #include "dn_endianness.h"
 
 //=========================== variables =======================================

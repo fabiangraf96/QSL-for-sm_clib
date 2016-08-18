@@ -4,13 +4,6 @@ Copyright (c) 2016, Dust Networks. All rights reserved.
 \license See attached DN_LICENSE.txt.
 */
 
-/* 
- * File:   dn_watchdog.h
- * Author: jhbr@datarespons.no
- *
- * Created on 23. juni 2016, 12:36
- */
-
 #ifndef DN_WATCHDOG_H
 #define DN_WATCHDOG_H
 

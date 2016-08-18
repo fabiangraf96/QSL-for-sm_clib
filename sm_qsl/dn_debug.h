@@ -1,18 +1,10 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
-Debug macros.
+Debug macros (based on http://c.learncodethehardway.org/book/ex20.html ).
 
 \license See attached DN_LICENSE.txt.
 */
-
-/*
- * File:   dn_debug.h
- * Author: jhbr
- * Kudos:  http://c.learncodethehardway.org/book/ex20.html
- *
- * Created on 24. juni 2016, 13:41
- */
 
 #ifndef DN_DEBUG_H
 #define DN_DEBUG_H
