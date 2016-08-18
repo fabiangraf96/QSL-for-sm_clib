@@ -1,15 +1,8 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+Copyright (c) 2016, Dust Networks. All rights reserved.
 
-/* 
- * File:   dn_time.c
- * Author: jhbr@datarespons.no
- *
- * Created on 9. aug 2016, 10:30
- */
+\license See attached DN_LICENSE.txt.
+*/
 
 #include "dn_time.h"
 #include "dn_debug.h"

@@ -1,9 +1,8 @@
 /*
- * debug_usart.h
- *
- * Created: 10.08.2016 14:46:04
- *  Author: jhbr
- */ 
+Copyright (c) 2016, Dust Networks. All rights reserved.
+
+\license See attached DN_LICENSE.txt.
+*/
 
 
 #ifndef DEBUG_USART_H_

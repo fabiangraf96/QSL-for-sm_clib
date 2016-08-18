@@ -1,9 +1,8 @@
 /*
- * watchdog_timer.h
- *
- * Created: 12.08.2016 15:04:52
- *  Author: jhbr
- */ 
+Copyright (c) 2016, Dust Networks. All rights reserved.
+
+\license See attached DN_LICENSE.txt.
+*/
 
 
 #ifndef WATCHDOG_TIMER_H_
