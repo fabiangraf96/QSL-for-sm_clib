@@ -1,11 +1,12 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
+Watchdog timer configuration for the SAM C21 Xplained Pro.
+
 \license See attached DN_LICENSE.txt.
 */
 
 #include "watchdog_timer.h"
-#include "wdt.h"
 #include "dn_debug.h"
 
 void watchdog_warning_callback(void)

@@ -1,6 +1,8 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
+Port of the endianness module to the SAM C21 Xplained Pro.
+
 \license See attached DN_LICENSE.txt.
 */
 

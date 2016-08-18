@@ -7,6 +7,7 @@ SimplePublish example application for the SAM C21 Xplained Pro.
 */
 
 #include <asf.h>
+
 #include "serial.h"
 #include "watchdog_timer.h"
 #include "dn_qsl_api.h"		// Only really need this include from QSL
@@ -67,10 +68,12 @@ int main(int argc, char** argv)
 
 			do
 			{
+				wdt_reset_count();
 				bytesRead = dn_qsl_read(inboxBuf);
 				parsePayload(inboxBuf, bytesRead);
 			} while (bytesRead > 0);
 			
+			wdt_reset_count();
 			dn_sleep_ms(DATA_PERIOD_MS);
 		} else
 		{

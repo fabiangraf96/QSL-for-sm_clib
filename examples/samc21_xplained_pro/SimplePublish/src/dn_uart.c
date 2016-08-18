@@ -1,13 +1,17 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
+Port of the uart module to the SAM C21 Xplained Pro.
+Setup and initialization found in serial.c.
+
 \license See attached DN_LICENSE.txt.
 */
+
+#include <asf.h>
 
 #include "dn_uart.h"
 #include "dn_ipmt.h"
 #include "dn_debug.h"
-#include <asf.h>
 #include "serial.h"
 
 

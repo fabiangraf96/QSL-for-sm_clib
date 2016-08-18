@@ -1,12 +1,15 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
+Port of the time module to the SAM C21 Xplained Pro.
+
 \license See attached DN_LICENSE.txt.
 */
 
+#include <rtc_count.h>
+
 #include "dn_time.h"
 #include "dn_debug.h"
-#include "rtc_count.h"
 #include "delay.h"
 
 //=========================== variables =======================================

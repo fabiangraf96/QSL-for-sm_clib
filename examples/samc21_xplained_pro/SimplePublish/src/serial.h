@@ -1,6 +1,8 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
+Serial (SERCOM) configuration for the SAM C21 Xplained Pro.
+
 \license See attached DN_LICENSE.txt.
 */
 
@@ -9,6 +11,11 @@ Copyright (c) 2016, Dust Networks. All rights reserved.
 #define DEBUG_USART_H_
 
 #include "dn_common.h"
+
+#define USART_DEBUG_BAUD_RATE	115200
+#define USART_SMIP_BAUD_RATE	115200
+#define USART_SAMPLE_NUM		16
+#define SHIFT					32
 
 #ifdef __cplusplus
 extern "C" {

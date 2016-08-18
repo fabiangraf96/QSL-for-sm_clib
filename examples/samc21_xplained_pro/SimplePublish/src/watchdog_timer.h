@@ -1,12 +1,16 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
+Watchdog timer configuration for the SAM C21 Xplained Pro.
+
 \license See attached DN_LICENSE.txt.
 */
 
 
 #ifndef WATCHDOG_TIMER_H_
 #define WATCHDOG_TIMER_H_
+
+#include <wdt.h>
 
 #define WATCHDOG_TIMEOUT_CLK	WDT_PERIOD_8192CLK;
 #define WATCHDOG_TIMEOUT_MS		8000 // Timeout in ms corresponding to the above ticks

@@ -1,16 +1,14 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
+Serial (SERCOM) configuration for the SAM C21 Xplained Pro.
+
 \license See attached DN_LICENSE.txt.
 */
 
 #include <asf.h>
-#include "serial.h"
 
-#define USART_DEBUG_BAUD_RATE	115200
-#define USART_SMIP_BAUD_RATE	115200
-#define USART_SAMPLE_NUM		16
-#define SHIFT					32
+#include "serial.h"
 
 static inline void pin_set_peripheral_function(uint32_t pinmux);
 static uint64_t long_division(uint64_t n, uint64_t d);
