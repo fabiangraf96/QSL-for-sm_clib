@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 	uint8_t payload[3];
 	uint8_t inboxBuf[DN_DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t bytesRead;
-	
+
 	// Initialize system clock and board
 	system_init();
 
@@ -41,6 +41,9 @@ int main(int argc, char** argv)
 
 	// Initialize watchdog timer
 	configure_wdt();
+
+	// Watchdog and usart uses interrupts
+	system_interrupt_enable_global();
 
 	log_info("Initializing...");
 

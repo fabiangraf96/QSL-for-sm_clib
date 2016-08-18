@@ -48,14 +48,13 @@ void dn_sleep_ms(uint32_t milliseconds)
 static void configure_rtc_count(void)
 {
 	struct rtc_count_config config_rtc_count;
-
 	rtc_count_get_config_defaults(&config_rtc_count);
 
-	config_rtc_count.prescaler           = RTC_COUNT_PRESCALER_DIV_1;
-	config_rtc_count.mode                = RTC_COUNT_MODE_32BIT;
+	config_rtc_count.prescaler	= RTC_COUNT_PRESCALER_DIV_1;	// Count milliseconds
+	config_rtc_count.mode		= RTC_COUNT_MODE_32BIT;			// Count to max 32-bit
 	
+	// Initialize and enable RTC
 	rtc_count_init(&dn_time_vars.rtc_instance, RTC, &config_rtc_count);
-
 	rtc_count_enable(&dn_time_vars.rtc_instance);
 }
 
