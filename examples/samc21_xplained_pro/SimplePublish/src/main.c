@@ -7,6 +7,7 @@ SimplePublish example application for the SAM C21 Xplained Pro.
 */
 
 #include <asf.h>
+#include <stdlib.h>
 
 #include "serial.h"
 #include "watchdog_timer.h"
