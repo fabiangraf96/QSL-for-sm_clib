@@ -131,9 +131,11 @@ int main(void)
 	  } else
 	  {
 		  log_info("Connecting...");
+		  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_RESET); // Turn off green LED
 		  if (dn_qsl_connect(NETID, JOINKEY, SRC_PORT, BANDWIDTH_MS))
 		  {
 			  log_info("Connected to network");
+			  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_SET); // Turn on green LED
 		  } else
 		  {
 			  log_info("Failed to connect");
