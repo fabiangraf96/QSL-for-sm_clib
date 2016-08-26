@@ -36,7 +36,7 @@
 #include "stm32l0xx_it.h"
 
 /* USER CODE BEGIN 0 */
-
+#include "usart.h"
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
