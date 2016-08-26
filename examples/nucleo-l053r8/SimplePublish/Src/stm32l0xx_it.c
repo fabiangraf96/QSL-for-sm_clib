@@ -74,6 +74,9 @@ void SysTick_Handler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
+	/* Bypass default IRQ handler: It has too much overhead and de-/re-enabling
+	 * of interrupts, which cause trouble when we want to catch individual
+	 * bytes and push them to the HDLC layer. */
 	USART_SMIP_Interrupt(&huart1);
 	return;
   /* USER CODE END USART1_IRQn 0 */

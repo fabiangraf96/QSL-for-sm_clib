@@ -38,7 +38,8 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN 0 */
-
+// USART1:	SMIP Serial API (interrupt enabled)
+// USART2:	ST-Link for stdio
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -196,7 +197,7 @@ PUTCHAR_PROTOTYPE
 {
   /* Place your implementation of fputc here */
   /* e.g. write a character to the USART2 and Loop until the end of transmission */
-  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
 
   return ch;
 }

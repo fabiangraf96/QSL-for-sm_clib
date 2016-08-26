@@ -1,8 +1,8 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
-Port of the uart module to the SAM C21 Xplained Pro.
-Setup and initialization found in serial.c.
+Port of the uart module to the NUCLEO-L053R8.
+Setup and initialization found in usart.c (CubeMX auto-generated code).
 
 \license See attached DN_LICENSE.txt.
 */
@@ -14,7 +14,7 @@ Setup and initialization found in serial.c.
 
 
 //=========================== defines =========================================
-#define TX_TIMEOUT_MS	1
+
 
 //=========================== variables =======================================
 
@@ -43,7 +43,10 @@ void dn_uart_init(dn_uart_rxByte_cbt rxByte_cb)
 
 void dn_uart_txByte(uint8_t byte)
 {
-	HAL_UART_Transmit(&huart1, &byte, 1, TX_TIMEOUT_MS);
+	/* Make HAL transmit byte.
+	 * HAL_MAX_DELAY is passed to prevent timeout:
+	 * Timeout would cause HAL to deactivate all USART interrupts... */
+	HAL_UART_Transmit(&huart1, &byte, 1, HAL_MAX_DELAY);
 }
 
 void dn_uart_txFlush()

@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
-Port of the lock module to the SAM C21 Xplained Pro.
+Port of the lock module to the NUCLEO-L053R8.
 
 \license See attached DN_LICENSE.txt.
 */

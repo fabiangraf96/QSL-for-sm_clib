@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
-Port of the endianness module to the SAM C21 Xplained Pro.
+Port of the endianness module to the NUCLEO-L053R8.
 
 \license See attached DN_LICENSE.txt.
 */
@@ -15,13 +15,13 @@ Port of the endianness module to the SAM C21 Xplained Pro.
 //=========================== public ==========================================
 
 void dn_write_uint16_t(uint8_t* ptr, uint16_t val){
-  // SAM C21 is a little-endian platform
+  // STM32L0 is a little-endian platform
    ptr[0]     = (val>>8)  & 0xff;
    ptr[1]     = (val>>0)  & 0xff;
 }
 
 void dn_write_uint32_t(uint8_t* ptr, uint32_t val){ 
-  // SAM C21 is a little-endian platform
+  // STM32L0 is a little-endian platform
    ptr[0]     = (val>>24) & 0xff;
    ptr[1]     = (val>>16) & 0xff;
    ptr[2]     = (val>>8)  & 0xff;
@@ -29,14 +29,14 @@ void dn_write_uint32_t(uint8_t* ptr, uint32_t val){
 }
 
 void dn_read_uint16_t(uint16_t* to, uint8_t* from){
-   // SAM C21 is a little-endian platform
+   // STM32L0 is a little-endian platform
    *to        = 0;
    *to       |= (from[1]<<0);
    *to       |= (from[0]<<8);
 }
 
 void dn_read_uint32_t(uint32_t* to, uint8_t* from){
-   // SAM C21 is a little-endian platform
+   // STM32L0 is a little-endian platform
    *to        = 0;
    *to       |= ( ((uint32_t)from[3])<<0 );
    *to       |= ( ((uint32_t)from[2])<<8 );

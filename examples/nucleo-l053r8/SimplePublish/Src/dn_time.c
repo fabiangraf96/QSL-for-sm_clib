@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2016, Dust Networks. All rights reserved.
 
-Port of the time module to the SAM C21 Xplained Pro.
+Port of the time module to the NUCLEO-L053R8.
 
 \license See attached DN_LICENSE.txt.
 */
@@ -19,14 +19,7 @@ Port of the time module to the SAM C21 Xplained Pro.
 
 uint32_t dn_time_ms(void)
 {
-	uint32_t now;
-	/*
-	static uint32_t dummyTime = 0;
-	dummyTime = dummyTime + 5;
-	return dummyTime;
-	*/
-	now = HAL_GetTick();
-	return now;
+	return HAL_GetTick();
 }
 
 void dn_sleep_ms(uint32_t milliseconds)
