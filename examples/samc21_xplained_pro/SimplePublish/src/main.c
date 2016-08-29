@@ -82,9 +82,11 @@ int main(int argc, char** argv)
 		} else
 		{
 			log_info("Connecting...");
+			LED_Off(LED_0_PIN); // Turn off yellow LED
 			if (dn_qsl_connect(NETID, JOINKEY, SRC_PORT, BANDWIDTH_MS))
 			{
 				log_info("Connected to network");
+				LED_On(LED_0_PIN); // Turn on yellow LED
 			} else
 			{
 				log_info("Failed to connect");
