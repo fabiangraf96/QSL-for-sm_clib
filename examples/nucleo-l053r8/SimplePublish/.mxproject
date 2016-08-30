@@ -1,6 +1,6 @@
 [PreviousGenFiles]
-HeaderPath=C:/Work/Linear/QuickStartLibrary/examples/nucleo-l053r8/SimplePublish/Inc
-SourcePath=C:/Work/Linear/QuickStartLibrary/examples/nucleo-l053r8/SimplePublish/Src
+HeaderPath=./Inc
+SourcePath=./Src
 SourceFiles=gpio.h;usart.h;stm32l0xx_it.h;stm32l0xx_hal_conf.h;mxconstants.h;gpio.c;usart.c;stm32l0xx_it.c;stm32l0xx_hal_msp.c;main.c;
 HeaderFiles=gpio.h;usart.h;stm32l0xx_it.h;stm32l0xx_hal_conf.h;mxconstants.h;
 
