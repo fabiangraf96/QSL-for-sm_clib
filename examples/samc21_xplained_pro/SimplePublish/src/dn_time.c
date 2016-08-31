@@ -39,7 +39,12 @@ uint32_t dn_time_ms(void)
 
 void dn_sleep_ms(uint32_t milliseconds)
 {
-	// TODO: Implement proper sleep?
+	/* A simple delay is used for simplicity in this example.
+	 * To save power, we could instead have initialized a timer to fire an
+	 * interrupt after the set number of milliseconds, followed by entering
+	 * a low-power sleep mode. Upon wake up, we would have to check that we
+	 * were indeed woken by said interrupt (and e.g. not an USART interrupt)
+	 * to decide if we should go back to sleep or not. */
 	delay_ms(milliseconds);
 }
 
