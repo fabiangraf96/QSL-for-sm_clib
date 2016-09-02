@@ -76,6 +76,7 @@ int main(void)
   uint8_t payload[3];
   uint8_t inboxBuf[DN_DEFAULT_PAYLOAD_SIZE_LIMIT];
   uint8_t bytesRead;
+  uint8_t i;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -94,6 +95,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
   log_info("Initializing...");
   dn_qsl_init();
+
+  // Flash green LED to indicate start-up complete
+  for (i = 0; i < 10; i++)
+  {
+	  HAL_GPIO_TogglePin(GPIOA, LD2_Pin);
+	  dn_sleep_ms(50);
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -108,6 +116,7 @@ int main(void)
 	  {
 		  uint16_t val = randomWalk();
 		  static uint8_t count = 0;
+		  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_RESET); // Turn LED off during send/read
 
 		  dn_write_uint16_t(payload, val);
 		  payload[2] = count;
@@ -127,15 +136,16 @@ int main(void)
 			  parsePayload(inboxBuf, bytesRead);
 		  } while (bytesRead > 0);
 
+		  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_SET); // Turn on green LED
 		  dn_sleep_ms(DATA_PERIOD_MS);
 	  } else
 	  {
 		  log_info("Connecting...");
-		  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_RESET); // Turn off green LED
+		  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_RESET); // Not connected; turn off green LED
 		  if (dn_qsl_connect(NETID, JOINKEY, SRC_PORT, BANDWIDTH_MS))
 		  {
 			  log_info("Connected to network");
-			  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_SET); // Turn on green LED
+			  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_SET); // Connected; turn on green LED
 		  } else
 		  {
 			  log_info("Failed to connect");
