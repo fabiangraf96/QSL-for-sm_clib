@@ -362,7 +362,7 @@ static void dn_fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	}
 
 	debug("FSM state transition: %#.2x --> %#.2x (%u ms)",
-			dn_fsm_vars.state, newState, now - lastTransition);
+			dn_fsm_vars.state, newState, (uint32_t)(now - lastTransition));
 	lastTransition = now;
 	dn_fsm_vars.state = newState;
 }
