@@ -101,7 +101,7 @@ bool dn_qsl_init(void)
 			sizeof (dn_fsm_vars.notifBuf),
 			dn_ipmt_reply_cb
 			);
-	
+
 	dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 	return TRUE;
 }
@@ -254,7 +254,8 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
  */
 static void dn_fsm_run(void)
 {
-	if (dn_fsm_vars.fsmArmed && (dn_time_ms() - dn_fsm_vars.fsmEventScheduled_ms > dn_fsm_vars.fsmDelay_ms))
+	uint32_t timePassed_ms = dn_time_ms() - dn_fsm_vars.fsmEventScheduled_ms; // Handle dn_time_ms wrap around
+	if (dn_fsm_vars.fsmArmed && (timePassed_ms > dn_fsm_vars.fsmDelay_ms))
 	{
 		// Scheduled event is due; execute it
 		dn_fsm_vars.fsmArmed = FALSE;
@@ -305,7 +306,7 @@ static void dn_fsm_setReplyCallback(dn_fsm_reply_cbt cb)
 	dn_fsm_vars.replyCb = cb;
 }
 
-//===== setReplyCallback
+//===== enterState
 
 /**
  Transition FSM to new state and schedule any default entry events.
@@ -316,8 +317,8 @@ static void dn_fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	uint16_t delay = DN_CMD_PERIOD_MS;
 	static uint32_t lastTransition = 0;
 	if (lastTransition == 0)
-		lastTransition = dn_time_ms();
-	
+		lastTransition = now;
+
 	// Use default delay if none given
 	if (spesificDelay > 0)
 		delay = spesificDelay;
@@ -361,7 +362,7 @@ static void dn_fsm_enterState(uint8_t newState, uint16_t spesificDelay)
 	}
 
 	debug("FSM state transition: %#.2x --> %#.2x (%u ms)",
-			dn_fsm_vars.state, newState, now - lastTransition);
+			dn_fsm_vars.state, newState, (uint32_t)(now - lastTransition));
 	lastTransition = now;
 	dn_fsm_vars.state = newState;
 }
@@ -374,7 +375,8 @@ static void dn_fsm_enterState(uint8_t newState, uint16_t spesificDelay)
  */
 static bool dn_fsm_cmd_timeout(uint32_t cmdStart_ms, uint32_t cmdTimeout_ms)
 {
-	bool timeout = (dn_time_ms() - cmdStart_ms) > cmdTimeout_ms;
+	uint32_t timePassed_ms = dn_time_ms() - cmdStart_ms; // Handle dn_time_ms wrap around
+	bool timeout = timePassed_ms > cmdTimeout_ms;
 	if (timeout)
 	{
 		// Cancel any ongoing transmission or scheduled event and reset reply cb
@@ -502,7 +504,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	case CMDID_RECEIVE:
 		notif_receive = (dn_ipmt_receive_nt*)dn_fsm_vars.notifBuf;
 		debug("Received downstream data");
-		
+
 		// Push payload at tail of inbox
 		memcpy
 				(
@@ -520,7 +522,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			dn_fsm_vars.inbox.unreadPackets++;
 		}
 		debug("Inbox capacity at %u / %u", dn_fsm_vars.inbox.unreadPackets, DN_INBOX_SIZE);
-		
+
 		break;
 	case CMDID_MACRX:
 		// Not implemented
@@ -531,7 +533,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 	case CMDID_ADVRECEIVED:
 		notif_advReceived = (dn_ipmt_advReceived_nt*)dn_fsm_vars.notifBuf;
 		debug("Received network advertisement");
-		
+
 		if (dn_fsm_vars.state == DN_FSM_STATE_PROMISCUOUS
 				&& dn_fsm_vars.networkId == DN_PROMISCUOUS_NET_ID)
 		{
@@ -540,7 +542,7 @@ static void dn_ipmt_notif_cb(uint8_t cmdId, uint8_t subCmdId)
 			dn_fsm_vars.networkId = notif_advReceived->netId;
 			dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_setNetworkId);
 		}
-		
+
 		break;
 	default:
 		log_warn("Unknown notification ID");
@@ -993,7 +995,7 @@ static void dn_reply_setNetworkId(void)
 static void dn_event_search(void)
 {
 	debug("Search");
-	
+
 	// Arm reply callback
 	dn_fsm_setReplyCallback(dn_reply_search);
 
@@ -1199,7 +1201,7 @@ static void dn_reply_getServiceInfo(void)
 				log_warn("Only granted service of %u ms (requested %u ms)", reply->value, dn_fsm_vars.service_ms);
 				dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 			}
-			
+
 		} else
 		{
 			debug("Service request still pending");
@@ -1304,7 +1306,7 @@ static dn_err_t checkAndSaveNetConfig(uint16_t netID, const uint8_t* joinKey, ui
 	{
 		memcpy(dn_fsm_vars.joinKey, joinKey, DN_JOIN_KEY_LEN);
 	}
-	
+
 	if (srcPort == 0)
 	{
 		debug("No source port given; using default");
@@ -1328,7 +1330,7 @@ static uint8_t getPayloadLimit(uint16_t destPort)
 	bool destIsF0Bx = (destPort >= DN_WELL_KNOWN_PORT_1 && destPort <= DN_WELL_KNOWN_PORT_8);
 	bool srcIsF0Bx = (dn_fsm_vars.srcPort >= DN_WELL_KNOWN_PORT_1 && dn_fsm_vars.srcPort <= DN_WELL_KNOWN_PORT_8);
 	int8_t destIsMng = memcmp(DN_DEST_IP, DN_DEFAULT_DEST_IP, DN_IPv6ADDR_LEN);
-	
+
 	if (destIsMng == 0)
 	{
 		if (destIsF0Bx && srcIsF0Bx)

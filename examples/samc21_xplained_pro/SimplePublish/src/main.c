@@ -31,6 +31,7 @@ int main(int argc, char** argv)
 	uint8_t payload[3];
 	uint8_t inboxBuf[DN_DEFAULT_PAYLOAD_SIZE_LIMIT];
 	uint8_t bytesRead;
+	uint8_t i;
 
 	// Initialize system clock and board
 	system_init();
@@ -49,6 +50,13 @@ int main(int argc, char** argv)
 	log_info("Initializing...");
 
 	dn_qsl_init(); // Always returns TRUE at the moment
+
+	// Flash LED to indicate start-up complete
+	for (i = 0; i < 10; i++)
+	{
+		LED_Toggle(LED_0_PIN);
+		dn_sleep_ms(50);
+	}
 	
 	while (TRUE)
 	{
@@ -57,6 +65,7 @@ int main(int argc, char** argv)
 		{
 			uint16_t val = randomWalk();
 			static uint8_t count = 0;
+			LED_Off(LED_0_PIN); // Turn LED off during send/read
 			
 			dn_write_uint16_t(payload, val);
 			payload[2] = count;
@@ -78,15 +87,16 @@ int main(int argc, char** argv)
 			} while (bytesRead > 0);
 			
 			wdt_reset_count();
+			LED_On(LED_0_PIN);
 			dn_sleep_ms(DATA_PERIOD_MS);
 		} else
 		{
 			log_info("Connecting...");
-			LED_Off(LED_0_PIN); // Turn off yellow LED
+			LED_Off(LED_0_PIN); // Not connected; turn off yellow LED
 			if (dn_qsl_connect(NETID, JOINKEY, SRC_PORT, BANDWIDTH_MS))
 			{
 				log_info("Connected to network");
-				LED_On(LED_0_PIN); // Turn on yellow LED
+				LED_On(LED_0_PIN); // Connected; turn on yellow LED
 			} else
 			{
 				log_info("Failed to connect");

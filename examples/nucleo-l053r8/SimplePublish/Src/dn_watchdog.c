@@ -17,7 +17,7 @@ Port of the watchdog module to the NUCLEO-L053R8.
 
 void dn_watchdog_feed(void)
 {
-	// Nothing to do since we have not implemented watchdog on Raspberry Pi
+	// Nothing to do since we have not implemented a watchdog in this example
 }
 
 //=========================== private =========================================
