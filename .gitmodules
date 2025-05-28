@@ -1,3 +1,4 @@
 [submodule "sm_clib"]
 	path = sm_clib
-	url = https://github.com/dustcloud/sm_clib.git
+	url = https://github.com/fabiangraf96/sm_clib.git
+	branch = master
