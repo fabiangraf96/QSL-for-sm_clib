@@ -12,6 +12,9 @@ Finite State Machine for the QuickStart Library.
 #include "dn_watchdog.h"
 #include "dn_qsl_api.h"
 #include "dn_debug.h"
+#include <zephyr/kernel.h>
+
+#define debug(fmt, ...) printk("DEBUG: " fmt "\n", ##__VA_ARGS__)
 
 //=========================== variables =======================================
 
