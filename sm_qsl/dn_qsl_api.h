@@ -11,6 +11,7 @@ QuickStart Library API.
 
 #include "dn_common.h"
 #include "dn_defaults.h"
+#include "dn_ipmt.h"
 
 //=========================== defines =========================================
 
@@ -103,6 +104,18 @@ bool dn_qsl_send(const uint8_t* payload, uint8_t payloadSize_B, uint16_t destPor
  \return The number of bytes read into the provided buffer.
  */
 uint8_t dn_qsl_read(uint8_t* readBuffer);
+
+//===== getTime
+
+/**
+ \brief Get the current time from the mote.
+ 
+ This function will block until the time is received or a timeout occurs.
+ 
+ \param out Pointer to a structure to store the received time information.
+ \return A boolean indicating if the time retrieval was successful.
+ */
+bool dn_qsl_getTime(dn_ipmt_getParameter_time_rpt* out);
 
 #ifdef __cplusplus
 }

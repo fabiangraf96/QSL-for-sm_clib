@@ -41,6 +41,9 @@ typedef struct
 	uint8_t destIPv6[DN_IPv6ADDR_LEN];
 	uint16_t destPort;
 	dn_inbox_t inbox;
+	dn_ipmt_getParameter_time_rpt timeRpt;
+    bool timeValid;
+
 } dn_fsm_vars_t;
 
 static dn_fsm_vars_t dn_fsm_vars;
@@ -82,6 +85,9 @@ static void dn_event_getServiceInfo(void);
 static void dn_reply_getServiceInfo(void);
 static void dn_event_sendTo(void);
 static void dn_reply_sendTo(void);
+static void dn_event_getTime(void);
+static void dn_reply_getTime(void);
+
 // helpers
 static dn_err_t checkAndSaveNetConfig(uint16_t netID, const uint8_t* joinKey, uint16_t srcPort, uint32_t req_service_ms);
 static uint8_t getPayloadLimit(uint16_t destPort);
@@ -245,6 +251,31 @@ uint8_t dn_qsl_read(uint8_t* readBuffer)
 	}
 	return bytesRead;
 }
+
+
+bool dn_qsl_getTime(dn_ipmt_getParameter_time_rpt* out)
+{
+    uint32_t cmdStart_ms = dn_time_ms();
+    debug("QSL: GetTime");
+
+    dn_fsm_vars.timeValid = FALSE;
+    dn_fsm_enterState(dn_fsm_vars.state, 0);
+    dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_getTime);
+
+    // Drive FSM
+    while (!dn_fsm_vars.timeValid &&
+           !dn_fsm_cmd_timeout(cmdStart_ms, DN_SEND_TIMEOUT_MS)) {
+        dn_watchdog_feed();
+        dn_fsm_run();
+    }
+
+    if (dn_fsm_vars.timeValid) {
+        memcpy(out, &dn_fsm_vars.timeRpt, sizeof(dn_ipmt_getParameter_time_rpt));
+        return TRUE;
+    }
+    return FALSE;
+}
+
 
 //=========================== private =========================================
 
@@ -1351,4 +1382,43 @@ static uint8_t getPayloadLimit(uint16_t destPort)
 		else
 			return DN_PAYLOAD_SIZE_LIMIT_IP_LOW;
 	}
+}
+
+
+static void dn_event_getTime(void)
+{
+    debug("Get time");
+    // Arm reply callback
+    dn_fsm_setReplyCallback(dn_reply_getTime);
+    // Issue mote API command
+    dn_ipmt_getParameter_time((dn_ipmt_getParameter_time_rpt*)dn_fsm_vars.replyBuf);
+    // Schedule timeout for reply
+    dn_fsm_scheduleEvent(DN_SERIAL_RESPONSE_TIMEOUT_MS, dn_event_responseTimeout);
+}
+
+static void dn_reply_getTime(void)
+{
+    dn_ipmt_getParameter_time_rpt* reply;
+    debug("Get time reply");
+    // Cancel reply timeout
+    dn_fsm_cancelEvent();
+    // Parse reply
+    reply = (dn_ipmt_getParameter_time_rpt*)dn_fsm_vars.replyBuf;
+
+    // Basic RC handling like other replies
+    // Choose next event or state transition
+    if (reply->RC == DN_RC_OK) {
+        // Copy parsed content into a persistent slot and mark valid
+        memcpy(&dn_fsm_vars.timeRpt, reply, sizeof(dn_ipmt_getParameter_time_rpt));
+        dn_fsm_vars.timeValid = TRUE;
+        debug("Time OK: uptime=%u, utcUsecs=%u", dn_fsm_vars.timeRpt.upTime, dn_fsm_vars.timeRpt.utcUsecs);
+        
+        if (dn_fsm_vars.state != DN_FSM_STATE_CONNECTED) {
+            dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
+        }
+    } else {
+        log_warn("Unexpected time RC: %#x", reply->RC);
+        dn_fsm_vars.timeValid = FALSE;
+        dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
+    }
 }
