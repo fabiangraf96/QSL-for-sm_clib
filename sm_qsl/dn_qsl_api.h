@@ -117,6 +117,19 @@ uint8_t dn_qsl_read(uint8_t* readBuffer);
  */
 bool dn_qsl_getTime(dn_ipmt_getParameter_time_rpt* out);
 
+//===== setTxPower
+
+/**
+ \brief Set the transmission power of the mote.
+ 
+ This function will block until the transmission power is set or a timeout occurs.
+ 
+ \param out Pointer to a structure to store the response information.
+ \param txPower The desired transmission power level.
+ \return A boolean indicating if the transmission power was set successfully.
+ */
+bool dn_qsl_setTxPower(dn_ipmt_setParameter_txPower_rpt* out, uint8_t txPower);
+
 #ifdef __cplusplus
 }
 #endif
