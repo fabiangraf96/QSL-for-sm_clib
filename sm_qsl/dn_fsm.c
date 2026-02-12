@@ -13,8 +13,10 @@ Finite State Machine for the QuickStart Library.
 #include "dn_qsl_api.h"
 #include "dn_debug.h"
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(qsl);
 
-#define debug(fmt, ...) printk("DEBUG: " fmt "\n", ##__VA_ARGS__)
+#define debug(fmt, ...) LOG_INF("DEBUG: " fmt "\n", ##__VA_ARGS__)
 
 //=========================== variables =======================================
 
