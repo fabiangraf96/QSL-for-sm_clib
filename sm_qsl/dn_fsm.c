@@ -47,7 +47,7 @@ typedef struct
 	dn_ipmt_setParameter_txPower_rpt txPowerRpt;
 	uint8_t txPower;
     bool timeValid;
-
+	bool txPowerValid;
 } dn_fsm_vars_t;
 
 static dn_fsm_vars_t dn_fsm_vars;
@@ -288,20 +288,20 @@ bool dn_qsl_setTxPower(dn_ipmt_setParameter_txPower_rpt* out, uint8_t txPower)
     uint32_t cmdStart_ms = dn_time_ms();
     debug("QSL: Set TX Power");
 
-	dn_fsm_vars.timeValid = FALSE;
-	dn_fsm_vars.txPower = txPower;
+	dn_fsm_vars.txPowerValid = FALSE;
     dn_fsm_enterState(dn_fsm_vars.state, 0);
     dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_setTxPower);
 
     // Drive FSM
-    while (!dn_fsm_vars.timeValid &&
-           !dn_fsm_cmd_timeout(cmdStart_ms, DN_SEND_TIMEOUT_MS)) {
+    while (!dn_fsm_vars.txPowerValid && 
+		   !dn_fsm_cmd_timeout(cmdStart_ms, DN_SEND_TIMEOUT_MS)) {
         dn_watchdog_feed();
         dn_fsm_run();
     }
 
-    if (dn_fsm_vars.timeValid) {
+    if (dn_fsm_vars.txPowerValid) {
         memcpy(out, &dn_fsm_vars.txPowerRpt, sizeof(dn_ipmt_setParameter_txPower_rpt));
+		dn_fsm_vars.txPower = txPower;
         return TRUE;
     }
     return FALSE;
@@ -1476,12 +1476,14 @@ static void dn_reply_setTxPower(void)
 	// Basic RC handling like other replies
 	// Choose next event or state transition
 	if (reply->RC == DN_RC_OK) {
+		dn_fsm_vars.txPowerValid = TRUE;
 		debug("TX Power set to %d dBm", dn_fsm_vars.txPower);
 		if (dn_fsm_vars.state != DN_FSM_STATE_CONNECTED) {
 			dn_fsm_enterState(DN_FSM_STATE_CONNECTED, 0);
 		}
 	} else {
 		log_warn("Unexpected TX Power RC: %#x", reply->RC);
+		dn_fsm_vars.txPowerValid = FALSE;
 		dn_fsm_enterState(DN_FSM_STATE_DISCONNECTED, 0);
 	}
 }
