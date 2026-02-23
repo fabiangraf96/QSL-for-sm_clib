@@ -290,6 +290,7 @@ bool dn_qsl_setTxPower(dn_ipmt_setParameter_txPower_rpt* out, uint8_t txPower)
 
 	dn_fsm_vars.txPowerValid = FALSE;
     dn_fsm_enterState(dn_fsm_vars.state, 0);
+	dn_fsm_vars.txPower = txPower;
     dn_fsm_scheduleEvent(DN_CMD_PERIOD_MS, dn_event_setTxPower);
 
     // Drive FSM
@@ -301,7 +302,6 @@ bool dn_qsl_setTxPower(dn_ipmt_setParameter_txPower_rpt* out, uint8_t txPower)
 
     if (dn_fsm_vars.txPowerValid) {
         memcpy(out, &dn_fsm_vars.txPowerRpt, sizeof(dn_ipmt_setParameter_txPower_rpt));
-		dn_fsm_vars.txPower = txPower;
         return TRUE;
     }
     return FALSE;
